@@ -3,11 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Scale, ArrowLeft, RotateCcw, ExternalLink, Database, Wifi, WifiOff, Sparkles, Cpu, Clock, Timer, CalendarDays } from "lucide-react";
+import { Scale, ArrowLeft, RotateCcw, Sparkles, Cpu, Clock, Timer, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GaugeChart } from "@/components/ui/gauge-chart";
 import {
   StrengthsCard,
@@ -18,13 +17,8 @@ import {
 import { PDFGenerator } from "@/components/results/pdf-generator";
 import { CASE_CATEGORY_LABELS } from "@/types/database";
 import type { AnalysisResult, CaseCategory } from "@/types/database";
-import type { UyapDecision } from "@/lib/uyap-client";
 
 interface ExtendedResult extends AnalysisResult {
-  uyapPrecedents?: UyapDecision[];
-  uyapAvailable?: boolean;
-  uyapError?: string | null;
-  uyapTotalCount?: number;
   aiProvider?: "claude" | "local";
 }
 
@@ -111,17 +105,6 @@ export default function ResultsPage() {
               <Badge variant="outline" className="gap-1">
                 <Cpu className="w-3 h-3" />
                 Yerel AI
-              </Badge>
-            )}
-            {result.uyapAvailable ? (
-              <Badge variant="success" className="gap-1">
-                <Wifi className="w-3 h-3" />
-                UYAP Aktif
-              </Badge>
-            ) : (
-              <Badge variant="warning" className="gap-1">
-                <WifiOff className="w-3 h-3" />
-                Yerel DB
               </Badge>
             )}
           </div>
@@ -248,127 +231,7 @@ export default function ResultsPage() {
           <RecommendationCard result={result} />
         </div>
 
-        {/* UYAP Gerçek Emsal Kararlar */}
-        {result.uyapPrecedents && result.uyapPrecedents.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45 }}
-            className="mb-8"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <h2 className="text-2xl font-bold text-slate-900">
-                UYAP Emsal Kararları
-              </h2>
-              <Badge variant="success" className="gap-1">
-                <Database className="w-3 h-3" />
-                emsal.uyap.gov.tr
-              </Badge>
-              {result.uyapTotalCount && result.uyapTotalCount > 0 && (
-                <span className="text-sm text-slate-500">
-                  ({result.uyapTotalCount} sonuç bulundu)
-                </span>
-              )}
-            </div>
-            <div className="grid gap-4">
-              {result.uyapPrecedents.map((decision, index) => (
-                <motion.div
-                  key={decision.karar_id || index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 + index * 0.1 }}
-                >
-                  <Card className="border-blue-200 hover:shadow-lg transition-shadow">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
-                            <Database className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-base">
-                              {decision.mahkeme || "Mahkeme Bilgisi"}
-                            </CardTitle>
-                            <p className="text-xs text-slate-500 mt-0.5">
-                              {decision.esas_no && `E: ${decision.esas_no}`}
-                              {decision.karar_no && ` | K: ${decision.karar_no}`}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="default" className="gap-1 text-xs">
-                            UYAP Resmi
-                          </Badge>
-                          {decision.karar_tarihi && (
-                            <span className="text-xs text-slate-400">
-                              {decision.karar_tarihi}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {decision.ozet && (
-                        <p className="text-sm text-slate-600 leading-relaxed mb-3">
-                          {decision.ozet.length > 500
-                            ? decision.ozet.substring(0, 500) + "..."
-                            : decision.ozet}
-                        </p>
-                      )}
-                      {decision.metin && !decision.ozet && (
-                        <p className="text-sm text-slate-600 leading-relaxed mb-3">
-                          {decision.metin.length > 500
-                            ? decision.metin.substring(0, 500) + "..."
-                            : decision.metin}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-                        <ExternalLink className="w-3.5 h-3.5 text-blue-500" />
-                        <span className="text-xs text-blue-600 font-medium">
-                          Kaynak: emsal.uyap.gov.tr
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {/* UYAP erişilemedi bildirimi */}
-        {!result.uyapAvailable && result.uyapError && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45 }}
-            className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-xl"
-          >
-            <div className="flex items-start gap-3">
-              <WifiOff className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-blue-800 mb-1">
-                  UYAP Emsal Karar Sistemi
-                </p>
-                <p className="text-sm text-blue-700">
-                  {result.uyapError} Aşağıda yerel emsal veritabanımızdaki eşleşmeler gösterilmektedir.
-                  Gerçek emsal kararlar için{" "}
-                  <a
-                    href="https://emsal.uyap.gov.tr"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-semibold underline hover:text-blue-900"
-                  >
-                    emsal.uyap.gov.tr
-                  </a>
-                  {" "}adresini ziyaret edebilirsiniz.
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Yerel Emsal Kararlar */}
+        {/* Emsal Karar Analizi */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -376,18 +239,17 @@ export default function ResultsPage() {
           className="mb-8"
         >
           <div className="flex items-center gap-3 mb-6">
-            <h2 className="text-2xl font-bold text-slate-900">
-              {result.uyapAvailable ? "Yerel Emsal Eşleşmeleri" : "Emsal Karar Analizi"}
-            </h2>
-            <Badge variant="outline" className="gap-1">
-              <Database className="w-3 h-3" />
-              Yerel DB
-            </Badge>
+            <h2 className="text-2xl font-bold text-slate-900">Emsal Karar Analizi</h2>
+            {result.aiProvider === "claude" && (
+              <Badge variant="default" className="gap-1 bg-gradient-to-r from-violet-600 to-purple-600 border-0 text-white">
+                <Sparkles className="w-3 h-3" /> AI Emsal Tarama
+              </Badge>
+            )}
           </div>
           <div className="grid gap-6">
             {result.matchedPrecedents.map((precedent, index) => (
               <PrecedentCard
-                key={precedent.case_number}
+                key={`${precedent.case_number}-${index}`}
                 precedent={precedent}
                 index={index}
               />
