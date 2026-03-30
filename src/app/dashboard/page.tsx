@@ -10,6 +10,7 @@ import { WizardStep1 } from "@/components/dashboard/wizard-step1";
 import { WizardStep2 } from "@/components/dashboard/wizard-step2";
 import { useAuth } from "@/lib/auth-context";
 import { saveCaseResult } from "@/lib/case-storage";
+import { saveCase } from "@/lib/db";
 import { WizardStep3 } from "@/components/dashboard/wizard-step3";
 import type { CaseCategory } from "@/types/database";
 
@@ -61,6 +62,7 @@ export default function DashboardPage() {
 
       // Save to user history if logged in
       if (user) {
+        // localStorage (eski yöntem - fallback)
         saveCaseResult(
           user.id,
           formData.title,
@@ -69,6 +71,23 @@ export default function DashboardPage() {
           result,
           result.aiProvider || "local"
         );
+        // Supabase DB
+        saveCase(user.id, {
+          user_id: user.id,
+          title: formData.title,
+          category: formData.category as import("@/types/database").CaseCategory,
+          event_summary: formData.eventSummary,
+          additional_notes: formData.additionalNotes,
+          win_probability: result.winProbability,
+          analysis_report: result.analysisReport,
+          strengths: result.strengths,
+          weaknesses: result.weaknesses,
+          risk_factors: result.riskFactors,
+          suggested_actions: result.suggestedActions,
+          recommendation: result.recommendation,
+          estimated_duration_days: result.estimatedDuration?.avgDays,
+          ai_provider: result.aiProvider || "local",
+        }).catch(() => {}); // DB hatası olursa sessiz geç
       }
 
       // Store result in sessionStorage for the results page

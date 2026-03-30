@@ -10,7 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
 import { getCasesByUser, deleteCaseById, type SavedCase } from "@/lib/case-storage";
-import { CASE_CATEGORY_LABELS } from "@/types/database";
+import { getCasesByUserId, deleteCaseDB, type DBCase } from "@/lib/db";
+import { CASE_CATEGORY_LABELS, type CaseCategory } from "@/types/database";
 
 export default function HistoryPage() {
   const router = useRouter();
@@ -23,14 +24,43 @@ export default function HistoryPage() {
       return;
     }
     if (user) {
-      setCases(getCasesByUser(user.id));
+      // DB'den oku, yoksa localStorage'dan
+      getCasesByUserId(user.id).then((dbCases) => {
+        if (dbCases.length > 0) {
+          const mapped: SavedCase[] = dbCases.map((c: DBCase) => ({
+            id: c.id,
+            userId: c.user_id,
+            title: c.title,
+            category: c.category as CaseCategory,
+            eventSummary: c.event_summary,
+            result: {
+              winProbability: c.win_probability || 0,
+              strengths: c.strengths || [],
+              weaknesses: c.weaknesses || [],
+              recommendation: (c.recommendation || "needs_review") as "file_case" | "do_not_file" | "needs_review",
+              analysisReport: c.analysis_report || "",
+              matchedPrecedents: [],
+              riskFactors: c.risk_factors || [],
+              suggestedActions: c.suggested_actions || [],
+            },
+            createdAt: c.created_at,
+            aiProvider: (c.ai_provider || "local") as "claude" | "local",
+          }));
+          setCases(mapped);
+        } else {
+          setCases(getCasesByUser(user.id));
+        }
+      });
     }
   }, [user, authLoading, router]);
 
   const handleDelete = (caseId: string) => {
     if (confirm("Bu analizi silmek istediğinize emin misiniz?")) {
       deleteCaseById(caseId);
-      if (user) setCases(getCasesByUser(user.id));
+      deleteCaseDB(caseId).catch(() => {});
+      if (user) {
+        setCases((prev) => prev.filter((c) => c.id !== caseId));
+      }
     }
   };
 
