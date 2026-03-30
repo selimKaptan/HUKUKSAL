@@ -8,6 +8,8 @@ import Link from "next/link";
 import { ProgressSteps } from "@/components/ui/progress-steps";
 import { WizardStep1 } from "@/components/dashboard/wizard-step1";
 import { WizardStep2 } from "@/components/dashboard/wizard-step2";
+import { useAuth } from "@/lib/auth-context";
+import { saveCaseResult } from "@/lib/case-storage";
 import { WizardStep3 } from "@/components/dashboard/wizard-step3";
 import type { CaseCategory } from "@/types/database";
 
@@ -24,6 +26,7 @@ const STEPS = ["Dava Bilgileri", "Olay Detayı", "Belgeler & Analiz"];
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [formData, setFormData] = useState<FormData>({
@@ -55,6 +58,18 @@ export default function DashboardPage() {
       if (!response.ok) throw new Error("Analysis failed");
 
       const result = await response.json();
+
+      // Save to user history if logged in
+      if (user) {
+        saveCaseResult(
+          user.id,
+          formData.title,
+          formData.category as import("@/types/database").CaseCategory,
+          formData.eventSummary,
+          result,
+          result.aiProvider || "local"
+        );
+      }
 
       // Store result in sessionStorage for the results page
       sessionStorage.setItem(
