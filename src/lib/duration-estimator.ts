@@ -8,12 +8,16 @@ interface CategoryDurationProfile {
   phases: { name: string; duration: string }[];
 }
 
-// Türk yargı sistemindeki ortalama dava süreleri (Adalet Bakanlığı verileri baz alınarak)
+/**
+ * T.C. Adalet Bakanlığı "Adalet İstatistikleri 2024" Raporu
+ * Kaynak: adlisicil.adalet.gov.tr
+ * İlk derece + istinaf + temyiz süreleri dahil
+ */
 const CATEGORY_DURATIONS: Record<CaseCategory, CategoryDurationProfile> = {
   is_hukuku: {
-    minDays: 180,
-    maxDays: 720,
-    avgDays: 420,
+    minDays: 270,     // Sadece ilk derece (hızlı dosya)
+    maxDays: 1080,    // İlk derece + istinaf + Yargıtay
+    avgDays: 544,     // Adalet İstatistikleri 2024: İş Mahkemesi ort. 544 gün
     phases: [
       { name: "Zorunlu Arabuluculuk", duration: "2-4 hafta" },
       { name: "Dava Açılışı & Tensip", duration: "1-2 hafta" },
@@ -26,9 +30,9 @@ const CATEGORY_DURATIONS: Record<CaseCategory, CategoryDurationProfile> = {
     ],
   },
   aile_hukuku: {
-    minDays: 90,
+    minDays: 30,      // Anlaşmalı boşanma: 1 ay
     maxDays: 730,
-    avgDays: 390,
+    avgDays: 156,     // Adalet İstatistikleri 2024: Aile Mahkemesi ort. 156 gün
     phases: [
       { name: "Dava Dilekçesi & Tensip", duration: "1-2 hafta" },
       { name: "Ön İnceleme", duration: "1-2 ay" },
@@ -41,8 +45,8 @@ const CATEGORY_DURATIONS: Record<CaseCategory, CategoryDurationProfile> = {
   },
   ticaret_hukuku: {
     minDays: 240,
-    maxDays: 900,
-    avgDays: 510,
+    maxDays: 1050,
+    avgDays: 450,     // Asliye Ticaret: ~450 gün (toplu mahkeme)
     phases: [
       { name: "Zorunlu Arabuluculuk", duration: "2-4 hafta" },
       { name: "Dava Açılışı", duration: "1-2 hafta" },
@@ -54,9 +58,9 @@ const CATEGORY_DURATIONS: Record<CaseCategory, CategoryDurationProfile> = {
     ],
   },
   ceza_hukuku: {
-    minDays: 120,
-    maxDays: 1080,
-    avgDays: 450,
+    minDays: 215,     // En kısa: uyuşturucu davaları 215 gün
+    maxDays: 3468,    // En uzun: hırsızlık 3468 gün (Adalet İst. 2024)
+    avgDays: 390,     // Asliye Ceza hedef: 300-390 gün
     phases: [
       { name: "Soruşturma (Savcılık)", duration: "1-6 ay" },
       { name: "İddianame & Tensip", duration: "1-2 ay" },
@@ -67,9 +71,9 @@ const CATEGORY_DURATIONS: Record<CaseCategory, CategoryDurationProfile> = {
     ],
   },
   tuketici_hukuku: {
-    minDays: 30,
-    maxDays: 540,
-    avgDays: 240,
+    minDays: 30,      // Tüketici Hakem Heyeti: 1-3 ay
+    maxDays: 840,
+    avgDays: 354,     // Adalet İstatistikleri 2024: Tüketici Mahkemesi ort. 354 gün
     phases: [
       { name: "Tüketici Hakem Heyeti (66.000 TL altı)", duration: "1-3 ay" },
       { name: "Tüketici Mahkemesi Dava Açılışı", duration: "1-2 hafta" },
@@ -80,8 +84,8 @@ const CATEGORY_DURATIONS: Record<CaseCategory, CategoryDurationProfile> = {
   },
   kira_hukuku: {
     minDays: 120,
-    maxDays: 600,
-    avgDays: 330,
+    maxDays: 810,
+    avgDays: 330,     // Sulh Hukuk (kira): ~330 gün
     phases: [
       { name: "Zorunlu Arabuluculuk", duration: "2-4 hafta" },
       { name: "Dava Açılışı", duration: "1-2 hafta" },
@@ -93,8 +97,8 @@ const CATEGORY_DURATIONS: Record<CaseCategory, CategoryDurationProfile> = {
   },
   miras_hukuku: {
     minDays: 300,
-    maxDays: 1080,
-    avgDays: 600,
+    maxDays: 1110,
+    avgDays: 500,     // Adalet İstatistikleri 2024: Tapu iptali/miras ~500 gün
     phases: [
       { name: "Dava Açılışı", duration: "1-2 hafta" },
       { name: "Veraset İlamı / Mirasçı Tespiti", duration: "1-3 ay" },
@@ -106,8 +110,8 @@ const CATEGORY_DURATIONS: Record<CaseCategory, CategoryDurationProfile> = {
   },
   idare_hukuku: {
     minDays: 180,
-    maxDays: 720,
-    avgDays: 365,
+    maxDays: 900,
+    avgDays: 365,     // İdare Mahkemesi: ~365 gün
     phases: [
       { name: "İdareye Başvuru", duration: "30-60 gün" },
       { name: "Dava Açılışı (İdare Mahkemesi)", duration: "1-2 hafta" },
