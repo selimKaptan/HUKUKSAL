@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { supabase } from "./supabase";
 
 interface User {
   id: string;
@@ -26,12 +25,14 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
 });
 
+const hasSupabase = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session in localStorage
+    // Check localStorage session
     const stored = localStorage.getItem("jg_user");
     if (stored) {
       try {
@@ -41,59 +42,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Try Supabase session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        const u: User = {
-          id: session.user.id,
-          email: session.user.email || "",
-          name: session.user.user_metadata?.name,
-        };
-        setUser(u);
-        localStorage.setItem("jg_user", JSON.stringify(u));
-      }
+    // Try Supabase session only if configured
+    if (hasSupabase) {
+      import("./supabase").then(({ supabase }) => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user) {
+            const u: User = {
+              id: session.user.id,
+              email: session.user.email || "",
+              name: session.user.user_metadata?.name,
+            };
+            setUser(u);
+            localStorage.setItem("jg_user", JSON.stringify(u));
+          }
+          setLoading(false);
+        }).catch(() => {
+          setLoading(false);
+        });
+
+        supabase.auth.onAuthStateChange((_event, session) => {
+          if (session?.user) {
+            const u: User = {
+              id: session.user.id,
+              email: session.user.email || "",
+              name: session.user.user_metadata?.name,
+            };
+            setUser(u);
+            localStorage.setItem("jg_user", JSON.stringify(u));
+          }
+        });
+      }).catch(() => {
+        setLoading(false);
+      });
+    } else {
       setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        const u: User = {
-          id: session.user.id,
-          email: session.user.email || "",
-          name: session.user.user_metadata?.name,
-        };
-        setUser(u);
-        localStorage.setItem("jg_user", JSON.stringify(u));
-      } else {
-        // Only clear if no local user
-        const stored = localStorage.getItem("jg_user");
-        if (!stored) {
-          setUser(null);
-        }
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    }
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, name: string) => {
-    // Try Supabase first
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name } },
-    });
+    // Try Supabase if configured
+    if (hasSupabase) {
+      try {
+        const { supabase } = await import("./supabase");
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { name } },
+        });
 
-    if (!error && data.user) {
-      const u: User = { id: data.user.id, email, name, created_at: new Date().toISOString() };
-      setUser(u);
-      localStorage.setItem("jg_user", JSON.stringify(u));
-      return {};
+        if (!error && data.user) {
+          const u: User = { id: data.user.id, email, name, created_at: new Date().toISOString() };
+          setUser(u);
+          localStorage.setItem("jg_user", JSON.stringify(u));
+          return {};
+        }
+      } catch {
+        // Supabase failed, use localStorage fallback
+      }
     }
 
-    // Fallback: localStorage-based auth (demo mode)
-    const existingUsers = JSON.parse(localStorage.getItem("jg_users") || "[]");
-    if (existingUsers.find((u: User) => u.email === email)) {
+    // localStorage fallback
+    const existingUsers: (User & { password: string })[] = JSON.parse(localStorage.getItem("jg_users") || "[]");
+    if (existingUsers.find((u) => u.email === email)) {
       return { error: "Bu e-posta adresi zaten kayıtlı." };
     }
 
@@ -111,38 +121,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    // Try Supabase first
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    // Try Supabase if configured
+    if (hasSupabase) {
+      try {
+        const { supabase } = await import("./supabase");
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (!error && data.user) {
-      const u: User = {
-        id: data.user.id,
-        email: data.user.email || email,
-        name: data.user.user_metadata?.name,
-      };
-      setUser(u);
-      localStorage.setItem("jg_user", JSON.stringify(u));
-      return {};
+        if (!error && data.user) {
+          const u: User = {
+            id: data.user.id,
+            email: data.user.email || email,
+            name: data.user.user_metadata?.name,
+          };
+          setUser(u);
+          localStorage.setItem("jg_user", JSON.stringify(u));
+          return {};
+        }
+      } catch {
+        // Supabase failed, use localStorage fallback
+      }
     }
 
-    // Fallback: localStorage-based auth
-    const existingUsers = JSON.parse(localStorage.getItem("jg_users") || "[]");
-    const found = existingUsers.find(
-      (u: User & { password: string }) => u.email === email && u.password === password
-    );
+    // localStorage fallback
+    const existingUsers: (User & { password: string })[] = JSON.parse(localStorage.getItem("jg_users") || "[]");
+    const found = existingUsers.find((u) => u.email === email && u.password === password);
 
     if (!found) {
       return { error: "E-posta veya şifre hatalı." };
     }
 
-    const userWithoutPassword = { id: found.id, email: found.email, name: found.name, created_at: found.created_at };
+    const userWithoutPassword: User = { id: found.id, email: found.email, name: found.name, created_at: found.created_at };
     setUser(userWithoutPassword);
     localStorage.setItem("jg_user", JSON.stringify(userWithoutPassword));
     return {};
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    if (hasSupabase) {
+      try {
+        const { supabase } = await import("./supabase");
+        await supabase.auth.signOut();
+      } catch {
+        // ignore
+      }
+    }
     localStorage.removeItem("jg_user");
     setUser(null);
   }, []);
