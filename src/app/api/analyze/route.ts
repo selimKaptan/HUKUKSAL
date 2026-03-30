@@ -3,6 +3,9 @@ import { analyzeCase } from "@/lib/analysis-engine";
 import { analyzeCaseWithClaude } from "@/lib/claude-analyzer";
 import type { CaseCategory } from "@/types/database";
 
+// Vercel timeout'u artır (Hobby: max 60s, Pro: max 300s)
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
