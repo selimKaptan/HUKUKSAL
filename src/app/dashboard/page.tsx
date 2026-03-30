@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Scale } from "lucide-react";
+import { Scale, FileSearch, History, Calculator, Clock, UserSearch, CreditCard, ArrowRight, LogOut } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { ProgressSteps } from "@/components/ui/progress-steps";
 import { WizardStep1 } from "@/components/dashboard/wizard-step1";
 import { WizardStep2 } from "@/components/dashboard/wizard-step2";
@@ -28,8 +29,15 @@ const STEPS = ["Dava Bilgileri", "Olay Detayı", "Belgeler & Analiz"];
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
+  const [showWizard, setShowWizard] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/auth/login");
+    }
+  }, [user, authLoading, router]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     title: "",
@@ -121,12 +129,16 @@ export default function DashboardPage() {
     }
   };
 
+  if (authLoading || !user) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-pulse text-slate-400">Yukleniyor...</div></div>;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-white">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-100 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
+        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/dashboard" className="flex items-center gap-2.5">
             <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
               <Scale className="w-5 h-5 text-white" />
             </div>
@@ -134,13 +146,102 @@ export default function DashboardPage() {
               Justice<span className="text-blue-600">Guard</span>
             </span>
           </Link>
-          <span className="text-sm text-slate-400 font-medium">Dava Analiz Sihirbazı</span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-500 hidden sm:block">{user.name || user.email}</span>
+            <Button variant="ghost" size="sm" onClick={() => { signOut(); router.push("/"); }}>
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </header>
 
-      <div className="max-w-3xl mx-auto px-6 py-12">
-        {/* Progress Steps */}
-        <ProgressSteps steps={STEPS} currentStep={currentStep} />
+      <div className="max-w-5xl mx-auto px-6 py-8">
+
+        {/* Hoşgeldin Paneli - wizard kapalıyken göster */}
+        {!showWizard && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            {/* Hoşgeldin */}
+            <div className="mb-8">
+              <h1 className="text-3xl font-black text-slate-900 mb-1">Hosgeldin, {user.name || "Kullanici"}!</h1>
+              <p className="text-slate-500">Davanizi analiz edin, haklarinizi ogrenin.</p>
+            </div>
+
+            {/* Ana Aksiyon - Yeni Analiz */}
+            <div
+              onClick={() => setShowWizard(true)}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 mb-8 cursor-pointer hover:shadow-2xl hover:shadow-blue-200 transition-all group"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-2">Yeni Dava Analizi Baslat</h2>
+                  <p className="text-blue-100">Olayinizi anlatin, yapay zeka kazanma ihtimalinizi hesaplasin.</p>
+                </div>
+                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <FileSearch className="w-7 h-7 text-white" />
+                </div>
+              </div>
+            </div>
+
+            {/* Hızlı Erişim Kartları */}
+            <div className="grid md:grid-cols-3 gap-4 mb-8">
+              <Link href="/history">
+                <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-blue-200 transition-all cursor-pointer group">
+                  <History className="w-8 h-8 text-blue-500 mb-3 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-bold text-slate-900 mb-1">Dava Gecmisi</h3>
+                  <p className="text-xs text-slate-500">Onceki analizlerinizi goruntuleyin</p>
+                </div>
+              </Link>
+              <Link href="/tools/find-lawyer">
+                <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-emerald-200 transition-all cursor-pointer group">
+                  <UserSearch className="w-8 h-8 text-emerald-500 mb-3 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-bold text-slate-900 mb-1">Avukat Bul</h3>
+                  <p className="text-xs text-slate-500">Uzman avukatlarla eslesin</p>
+                </div>
+              </Link>
+              <Link href="/tools/mediation">
+                <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-amber-200 transition-all cursor-pointer group">
+                  <Calculator className="w-8 h-8 text-amber-500 mb-3 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-bold text-slate-900 mb-1">Arabuluculuk</h3>
+                  <p className="text-xs text-slate-500">Maliyet karsilastirmasi yapin</p>
+                </div>
+              </Link>
+            </div>
+
+            {/* Alt Araçlar */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <Link href="/tools/statute-of-limitations">
+                <div className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-all flex items-center gap-4 cursor-pointer">
+                  <Clock className="w-6 h-6 text-slate-400" />
+                  <div>
+                    <h3 className="font-semibold text-slate-900 text-sm">Zamanasimi Hesaplayici</h3>
+                    <p className="text-xs text-slate-500">Surelerinizi kontrol edin</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-slate-300 ml-auto" />
+                </div>
+              </Link>
+              <Link href="/pricing">
+                <div className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-all flex items-center gap-4 cursor-pointer">
+                  <CreditCard className="w-6 h-6 text-slate-400" />
+                  <div>
+                    <h3 className="font-semibold text-slate-900 text-sm">Planlar ve Fiyatlar</h3>
+                    <p className="text-xs text-slate-500">Pro plana yukseltin</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-slate-300 ml-auto" />
+                </div>
+              </Link>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Wizard */}
+        {showWizard && (
+          <div className="max-w-3xl mx-auto">
+            <button onClick={() => { setShowWizard(false); setCurrentStep(0); }} className="text-sm text-slate-500 hover:text-slate-700 mb-6 flex items-center gap-1">
+              ← Panele Don
+            </button>
+
+            {/* Progress Steps */}
+            <ProgressSteps steps={STEPS} currentStep={currentStep} />
 
         {/* Wizard Content */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 p-8 md:p-10">
@@ -219,6 +320,10 @@ export default function DashboardPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+          </div>
+        )}
+
       </div>
     </div>
   );
