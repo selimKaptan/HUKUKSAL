@@ -104,24 +104,22 @@ const AVG_DURATIONS: Record<CaseCategory, { ilkDereceGun: number; ilkDereceAy: n
 export default function MediationPage() {
   const [category, setCategory] = useState<CaseCategory | "">("");
   const [claimAmount, setClaimAmount] = useState("");
-  const [duration, setDuration] = useState("12");
   const [hasLawyer, setHasLawyer] = useState(true);
   const [complexity, setComplexity] = useState<"low" | "medium" | "high">("medium");
   const [result, setResult] = useState<MediationResult | null>(null);
 
   const handleCategoryChange = (cat: CaseCategory) => {
     setCategory(cat);
-    const data = AVG_DURATIONS[cat];
-    setDuration(data.ilkDereceAy.toString());
     setResult(null);
   };
 
   const handleCalculate = () => {
     if (!category || !claimAmount) return;
+    const data = AVG_DURATIONS[category as CaseCategory];
     const r = calculateMediation({
       category: category as CaseCategory,
       claimAmount: parseFloat(claimAmount),
-      estimatedDuration: parseInt(duration),
+      estimatedDuration: data.ilkDereceAy,
       hasLawyer,
       complexity,
     });
@@ -170,15 +168,6 @@ export default function MediationPage() {
                 <input type="number" value={claimAmount} onChange={(e) => setClaimAmount(e.target.value)} placeholder="100000" className="w-full h-12 px-4 rounded-xl border-2 border-slate-200 bg-white text-slate-900 focus:border-blue-500 outline-none" />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700">Tahmini Dava Süresi (ay)</label>
-                <input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full h-12 px-4 rounded-xl border-2 border-slate-200 bg-white text-slate-900 focus:border-blue-500 outline-none" />
-                {category && (
-                  <p className="text-xs text-blue-600 mt-1">
-                    Adalet Bakanligi 2024: Ilk derece ort. {AVG_DURATIONS[category as CaseCategory].ilkDereceGun} gun ({AVG_DURATIONS[category as CaseCategory].ilkDereceAy} ay) | Istinaf: ~{AVG_DURATIONS[category as CaseCategory].istinafAy} ay | Temyiz: ~{AVG_DURATIONS[category as CaseCategory].temyizAy} ay | Toplam: ~{AVG_DURATIONS[category as CaseCategory].toplamAy} ay
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700">Karmaşıklık</label>
                 <select value={complexity} onChange={(e) => setComplexity(e.target.value as "low" | "medium" | "high")} className="w-full h-12 px-4 rounded-xl border-2 border-slate-200 bg-white text-slate-900 focus:border-blue-500 outline-none">
                   <option value="low">Düşük</option>
@@ -187,6 +176,32 @@ export default function MediationPage() {
                 </select>
               </div>
             </div>
+            {/* Bakanlık verisi bilgi kutusu */}
+            {category && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                <p className="text-sm font-semibold text-blue-800 mb-2">Adalet Bakanligi 2024 Istatistikleri</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                  <div className="text-center p-2 bg-white rounded-lg">
+                    <div className="font-bold text-blue-700 text-lg">{AVG_DURATIONS[category as CaseCategory].ilkDereceGun}</div>
+                    <div className="text-slate-500">gun (ilk derece)</div>
+                  </div>
+                  <div className="text-center p-2 bg-white rounded-lg">
+                    <div className="font-bold text-blue-700 text-lg">~{AVG_DURATIONS[category as CaseCategory].istinafAy} ay</div>
+                    <div className="text-slate-500">istinaf</div>
+                  </div>
+                  <div className="text-center p-2 bg-white rounded-lg">
+                    <div className="font-bold text-blue-700 text-lg">~{AVG_DURATIONS[category as CaseCategory].temyizAy} ay</div>
+                    <div className="text-slate-500">temyiz</div>
+                  </div>
+                  <div className="text-center p-2 bg-white rounded-lg">
+                    <div className="font-bold text-slate-900 text-lg">~{AVG_DURATIONS[category as CaseCategory].toplamAy} ay</div>
+                    <div className="text-slate-500">toplam</div>
+                  </div>
+                </div>
+                <p className="text-xs text-blue-600 mt-2">Kaynak: {AVG_DURATIONS[category as CaseCategory].kaynak}</p>
+              </div>
+            )}
+
             <div className="flex items-center gap-3">
               <input type="checkbox" checked={hasLawyer} onChange={(e) => setHasLawyer(e.target.checked)} id="lawyer" className="w-5 h-5 rounded border-slate-300 text-blue-600" />
               <label htmlFor="lawyer" className="text-sm font-medium text-slate-700">Avukat ile temsil edilecek</label>
