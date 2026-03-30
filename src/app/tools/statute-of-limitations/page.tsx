@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Scale, ArrowLeft, Clock, AlertTriangle, CheckCircle2, XCircle, BookOpen, Calendar, Briefcase, Heart, ShoppingCart, Home, Building2, Gavel, Timer, Shield } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Scale, ArrowLeft, Clock, AlertTriangle, CheckCircle2, XCircle, BookOpen, Calendar, Briefcase, Heart, ShoppingCart, Home, Building2, Gavel, Timer, Shield, ChevronDown, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +21,7 @@ export default function StatuteOfLimitationsPage() {
   const [category, setCategory] = useState<CaseCategory | "">("");
   const [eventDate, setEventDate] = useState("");
   const [result, setResult] = useState<StatuteResult | null>(null);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
   const handleCategoryChange = (cat: CaseCategory) => {
     setCategory(cat);
@@ -151,10 +152,13 @@ export default function StatuteOfLimitationsPage() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.05 }}
                   >
-                    <Card className={cn(
-                      "overflow-hidden transition-all hover:shadow-md",
-                      isExpired ? "border-red-300" : isUrgent ? "border-amber-300" : "border-slate-200"
-                    )}>
+                    <Card
+                      className={cn(
+                        "overflow-hidden transition-all hover:shadow-md cursor-pointer",
+                        isExpired ? "border-red-300" : isUrgent ? "border-amber-300" : "border-slate-200"
+                      )}
+                      onClick={() => setExpandedCard(expandedCard === d.subcategory ? null : d.subcategory)}
+                    >
                       <div className={cn(
                         "h-1",
                         isExpired ? "bg-red-500" : isUrgent ? "bg-amber-500" : "bg-emerald-500"
@@ -225,6 +229,37 @@ export default function StatuteOfLimitationsPage() {
                                 ))}
                               </div>
                             )}
+
+                            {/* Tıkla-aç detay butonu */}
+                            <div className="flex items-center gap-1 mt-3 text-xs text-blue-600">
+                              <HelpCircle className="w-3 h-3" />
+                              <span>Bu ne demek? Tiklayin</span>
+                              <ChevronDown className={cn("w-3 h-3 transition-transform", expandedCard === d.subcategory && "rotate-180")} />
+                            </div>
+
+                            {/* Sade açıklama paneli */}
+                            <AnimatePresence>
+                              {expandedCard === d.subcategory && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: "auto" }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                                    <div className="flex items-start gap-3">
+                                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <HelpCircle className="w-4 h-4 text-blue-600" />
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-semibold text-blue-900 mb-1">Sade Turkce Aciklama</p>
+                                        <p className="text-sm text-blue-800 leading-relaxed">{statute.plainExplanation}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
                         </div>
                       </CardContent>
