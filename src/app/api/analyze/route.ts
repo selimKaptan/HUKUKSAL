@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeCase } from "@/lib/analysis-engine";
+import { analyzeCaseWithClaude } from "@/lib/claude-analyzer";
 import { searchUyapPrecedents, getCategoryKeywords } from "@/lib/uyap-client";
 import type { CaseCategory } from "@/types/database";
+import type { UyapDecision } from "@/lib/uyap-client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,17 +24,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Yerel analiz motorunu çalıştır
-    const localResult = analyzeCase(
-      eventSummary,
-      category as CaseCategory,
-      additionalNotes
-    );
+    // 1. UYAP'tan gerçek emsal kararları ara
+    let uyapDecisions: UyapDecision[] = [];
+    let uyapAvailable = false;
+    let uyapError: string | null = null;
+    let uyapTotalCount = 0;
 
-    // 2. UYAP'tan gerçek emsal kararları ara (paralel)
-    let uyapResults = null;
     try {
-      // Olay özetinden anahtar kelimeleri çıkar
       const categoryKeywords = getCategoryKeywords(category);
       const summaryWords = eventSummary
         .split(/\s+/)
@@ -41,23 +39,61 @@ export async function POST(request: NextRequest) {
         .join(" ");
       const searchKeyword = summaryWords || categoryKeywords[0] || "dava";
 
-      uyapResults = await searchUyapPrecedents({
+      const uyapResults = await searchUyapPrecedents({
         aranacakKelime: searchKeyword,
         pageSize: 5,
         pageNumber: 1,
       });
+
+      if (uyapResults.success) {
+        uyapDecisions = uyapResults.decisions;
+        uyapAvailable = true;
+        uyapTotalCount = uyapResults.totalCount;
+      } else {
+        uyapError = uyapResults.error || null;
+      }
     } catch {
-      // UYAP erişilemezse yerel sonuçlarla devam et
-      console.log("UYAP erişilemedi, yerel sonuçlar kullanılıyor.");
+      console.log("UYAP erişilemedi, devam ediliyor.");
+    }
+
+    // 2. Claude AI ile analiz (API key varsa)
+    const hasClaudeKey = !!process.env.ANTHROPIC_API_KEY;
+    let analysisResult;
+
+    if (hasClaudeKey) {
+      try {
+        analysisResult = await analyzeCaseWithClaude(
+          eventSummary,
+          category as CaseCategory,
+          additionalNotes,
+          uyapDecisions.length > 0 ? uyapDecisions : undefined
+        );
+      } catch (error) {
+        console.error("Claude API error, falling back to local:", error);
+        // Fallback: yerel analiz motoru
+        analysisResult = analyzeCase(
+          eventSummary,
+          category as CaseCategory,
+          additionalNotes
+        );
+      }
+    } else {
+      // Claude API key yoksa yerel analiz motorunu kullan
+      analysisResult = analyzeCase(
+        eventSummary,
+        category as CaseCategory,
+        additionalNotes
+      );
     }
 
     // 3. Sonuçları birleştir
     const response = {
-      ...localResult,
-      uyapPrecedents: uyapResults?.success ? uyapResults.decisions : [],
-      uyapAvailable: uyapResults?.success || false,
-      uyapError: uyapResults?.error || null,
-      uyapTotalCount: uyapResults?.totalCount || 0,
+      ...analysisResult,
+      uyapPrecedents: uyapDecisions,
+      uyapAvailable,
+      uyapError,
+      uyapTotalCount,
+      aiProvider: hasClaudeKey ? "claude" : "local",
     };
 
     return NextResponse.json(response);

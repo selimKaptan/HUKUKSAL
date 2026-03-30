@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Scale, ArrowLeft, RotateCcw, ExternalLink, Database, Wifi, WifiOff } from "lucide-react";
+import { Scale, ArrowLeft, RotateCcw, ExternalLink, Database, Wifi, WifiOff, Sparkles, Cpu } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ interface ExtendedResult extends AnalysisResult {
   uyapAvailable?: boolean;
   uyapError?: string | null;
   uyapTotalCount?: number;
+  aiProvider?: "claude" | "local";
 }
 
 interface StoredData {
@@ -101,15 +102,26 @@ export default function ResultsPage() {
                 year: "numeric",
               })}
             </p>
+            {result.aiProvider === "claude" ? (
+              <Badge variant="default" className="gap-1 bg-gradient-to-r from-violet-600 to-purple-600 border-0 text-white">
+                <Sparkles className="w-3 h-3" />
+                Claude AI
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="gap-1">
+                <Cpu className="w-3 h-3" />
+                Yerel AI
+              </Badge>
+            )}
             {result.uyapAvailable ? (
               <Badge variant="success" className="gap-1">
                 <Wifi className="w-3 h-3" />
-                UYAP Bağlantısı Aktif
+                UYAP Aktif
               </Badge>
             ) : (
               <Badge variant="warning" className="gap-1">
                 <WifiOff className="w-3 h-3" />
-                Yerel Veritabanı
+                Yerel DB
               </Badge>
             )}
           </div>
