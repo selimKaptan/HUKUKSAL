@@ -11,6 +11,7 @@ import { WizardStep2 } from "@/components/dashboard/wizard-step2";
 import { useAuth } from "@/lib/auth-context";
 import { saveCaseResult } from "@/lib/case-storage";
 import { saveCase } from "@/lib/db";
+import { canMakeAnalysis, incrementAnalysisUsage } from "@/lib/subscription";
 import { WizardStep3 } from "@/components/dashboard/wizard-step3";
 import type { CaseCategory } from "@/types/database";
 
@@ -44,6 +45,16 @@ export default function DashboardPage() {
   };
 
   const handleSubmit = async () => {
+    // Kullanım limiti kontrolü
+    if (user) {
+      const check = canMakeAnalysis(user.id);
+      if (!check.allowed) {
+        alert(check.message || "Analiz limitiniz dolmuş.");
+        router.push("/pricing");
+        return;
+      }
+    }
+
     setIsAnalyzing(true);
     try {
       const response = await fetch("/api/analyze", {
@@ -59,6 +70,9 @@ export default function DashboardPage() {
       if (!response.ok) throw new Error("Analysis failed");
 
       const result = await response.json();
+
+      // Analiz kullanımını artır
+      if (user) incrementAnalysisUsage(user.id);
 
       // Save to user history if logged in
       if (user) {

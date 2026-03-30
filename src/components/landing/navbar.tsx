@@ -1,6 +1,6 @@
 "use client";
 
-import { Scale, LogOut, History, Calculator, Clock, UserSearch } from "lucide-react";
+import { Scale, LogOut, History, Calculator, Clock, UserSearch, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
@@ -24,6 +24,9 @@ export function Navbar() {
 
         {/* Araçlar */}
         <div className="hidden md:flex items-center gap-1">
+          <Link href="/pricing" className="px-3 py-2 text-sm text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1.5">
+            <CreditCard className="w-3.5 h-3.5" /> Fiyatlar
+          </Link>
           <Link href="/tools/mediation" className="px-3 py-2 text-sm text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1.5">
             <Calculator className="w-3.5 h-3.5" /> Arabuluculuk
           </Link>
