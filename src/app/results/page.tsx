@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Scale, ArrowLeft, RotateCcw, ExternalLink, Database, Wifi, WifiOff, Sparkles, Cpu } from "lucide-react";
+import { Scale, ArrowLeft, RotateCcw, ExternalLink, Database, Wifi, WifiOff, Sparkles, Cpu, Clock, Timer, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -137,6 +137,105 @@ export default function ResultsPage() {
           <h2 className="text-lg font-bold text-slate-600 mb-6">Kazanma Olasılığı</h2>
           <GaugeChart value={result.winProbability} />
         </motion.div>
+
+        {/* Tahmini Dava Süresi */}
+        {result.estimatedDuration && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 p-8 mb-8"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Timer className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Tahmini Dava Süresi</h2>
+                <p className="text-xs text-slate-500">Emsal kararlara ve istatistiklere dayalı</p>
+              </div>
+            </div>
+
+            {/* Süre özeti - 3 kutu */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="text-center p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+                <p className="text-xs text-emerald-600 font-medium mb-1">En Kısa</p>
+                <p className="text-xl font-black text-emerald-700">
+                  {result.estimatedDuration.minDays < 30
+                    ? `${result.estimatedDuration.minDays} gün`
+                    : result.estimatedDuration.minDays < 365
+                    ? `${Math.round(result.estimatedDuration.minDays / 30)} ay`
+                    : `${(result.estimatedDuration.minDays / 365).toFixed(1)} yıl`}
+                </p>
+              </div>
+              <div className="text-center p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <p className="text-xs text-blue-600 font-medium mb-1">Ortalama</p>
+                <p className="text-2xl font-black text-blue-700">
+                  {result.estimatedDuration.avgDays < 30
+                    ? `${result.estimatedDuration.avgDays} gün`
+                    : result.estimatedDuration.avgDays < 365
+                    ? `${Math.round(result.estimatedDuration.avgDays / 30)} ay`
+                    : `${(result.estimatedDuration.avgDays / 365).toFixed(1)} yıl`}
+                </p>
+              </div>
+              <div className="text-center p-4 bg-red-50 rounded-xl border border-red-200">
+                <p className="text-xs text-red-600 font-medium mb-1">En Uzun</p>
+                <p className="text-xl font-black text-red-700">
+                  {result.estimatedDuration.maxDays < 365
+                    ? `${Math.round(result.estimatedDuration.maxDays / 30)} ay`
+                    : `${(result.estimatedDuration.maxDays / 365).toFixed(1)} yıl`}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-sm text-slate-600 mb-6">{result.estimatedDuration.description}</p>
+
+            {/* Dava Aşamaları Timeline */}
+            <div className="mb-6">
+              <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                <CalendarDays className="w-4 h-4" /> Dava Aşamaları
+              </h3>
+              <div className="space-y-2">
+                {result.estimatedDuration.phases.map((phase, i) => (
+                  <div key={phase.name} className="flex items-center gap-3">
+                    <div className="flex flex-col items-center">
+                      <div className={`w-3 h-3 rounded-full ${i === 0 ? "bg-blue-500" : "bg-slate-300"}`} />
+                      {i < result.estimatedDuration!.phases.length - 1 && (
+                        <div className="w-0.5 h-6 bg-slate-200" />
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between flex-1 py-1">
+                      <span className="text-sm text-slate-700">{phase.name}</span>
+                      <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{phase.duration}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Emsal Dava Süreleri */}
+            {result.estimatedDuration.precedentDurations.length > 0 && (
+              <div>
+                <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4" /> Emsal Davaların Süreleri
+                </h3>
+                <div className="grid gap-2">
+                  {result.estimatedDuration.precedentDurations.map((pd) => (
+                    <div key={pd.case_number} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                      <div>
+                        <span className="text-sm font-medium text-slate-700">{pd.court}</span>
+                        <span className="text-xs text-slate-400 ml-2">{pd.case_number}</span>
+                      </div>
+                      <Badge variant="outline" className="font-bold">
+                        {pd.duration_label}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
 
         {/* Strengths & Weaknesses */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">

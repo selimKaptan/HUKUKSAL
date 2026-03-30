@@ -1,4 +1,5 @@
 import { PRECEDENTS_DB } from "./precedents-data";
+import { estimateCaseDuration } from "./duration-estimator";
 import type { AnalysisResult, CaseCategory, Precedent } from "@/types/database";
 
 function tokenize(text: string): string[] {
@@ -315,6 +316,11 @@ export function analyzeCase(
       : "Arabuluculuk veya uzlaşma yollarını değerlendirin.",
   ];
 
+  // Süre tahmini
+  const wordCount = fullText.split(/\s+/).length;
+  const complexity = wordCount > 200 ? "high" : wordCount > 80 ? "medium" : "low";
+  const estimatedDuration = estimateCaseDuration(category, complexity, matchedPrecedents);
+
   return {
     winProbability,
     strengths,
@@ -324,5 +330,6 @@ export function analyzeCase(
     matchedPrecedents: matchedPrecedents as (Precedent & { relevance_score: number })[],
     riskFactors,
     suggestedActions,
+    estimatedDuration,
   };
 }

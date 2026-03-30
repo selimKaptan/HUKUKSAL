@@ -11,6 +11,7 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "İşçinin haklı nedenle fesih hakkı bulunduğuna, kıdem tazminatı ve diğer alacaklarının ödenmesine karar verilmiştir.",
     keywords: ["maaş gecikmesi", "haklı fesih", "kıdem tazminatı", "iş sözleşmesi", "işçi hakları"],
     outcome: "plaintiff_won",
+    duration_days: 485,
   },
   {
     court: "Yargıtay 9. Hukuk Dairesi",
@@ -21,6 +22,7 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "Feshin geçersizliğine ve işçinin işe iadesine karar verilmiştir. İşe başlatmama halinde 8 aylık tazminat öngörülmüştür.",
     keywords: ["işe iade", "geçersiz fesih", "performans", "iş güvencesi", "tazminat"],
     outcome: "plaintiff_won",
+    duration_days: 320,
   },
   {
     court: "Yargıtay 22. Hukuk Dairesi",
@@ -31,6 +33,7 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "Fazla mesai ücretinin ödenmesine karar verilmiştir. Tanık beyanları ve işyeri giriş-çıkış kayıtları belirleyici olmuştur.",
     keywords: ["fazla mesai", "çalışma saatleri", "bordro", "tanık beyanı", "ücret alacağı"],
     outcome: "plaintiff_won",
+    duration_days: 540,
   },
   // AİLE HUKUKU
   {
@@ -42,6 +45,7 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "Nafakanın ÜFE oranında artırılmasına karar verilmiştir. Çocuğun eğitim masrafları dikkate alınmıştır.",
     keywords: ["nafaka artırımı", "boşanma", "çocuk nafakası", "eğitim masrafları", "ÜFE"],
     outcome: "plaintiff_won",
+    duration_days: 390,
   },
   {
     court: "Yargıtay 2. Hukuk Dairesi",
@@ -52,6 +56,7 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "Velayetin anneye verilmesine, baba ile kişisel ilişki tesisine karar verilmiştir.",
     keywords: ["velayet", "çocuk hakları", "sosyal inceleme", "kişisel ilişki", "anne hakkı"],
     outcome: "plaintiff_won",
+    duration_days: 450,
   },
   // TÜKETİCİ HUKUKU
   {
@@ -63,6 +68,7 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "Aracın iadesine ve satış bedelinin tüketiciye geri ödenmesine karar verilmiştir.",
     keywords: ["ayıplı mal", "araç", "üretim hatası", "tüketici hakları", "iade"],
     outcome: "plaintiff_won",
+    duration_days: 360,
   },
   {
     court: "Tüketici Hakem Heyeti",
@@ -73,6 +79,7 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "Satıcının iade bedelini 14 gün içinde ödemesine karar verilmiştir.",
     keywords: ["cayma hakkı", "online alışveriş", "iade", "e-ticaret", "tüketici"],
     outcome: "plaintiff_won",
+    duration_days: 45,
   },
   // KİRA HUKUKU
   {
@@ -84,6 +91,7 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "Kira bedelinin bilirkişi raporuna göre emsal kiralara uygun şekilde artırılmasına karar verilmiştir.",
     keywords: ["kira tespit", "emsal kira", "bilirkişi", "kira artışı", "kiracı"],
     outcome: "plaintiff_won",
+    duration_days: 420,
   },
   {
     court: "Yargıtay 6. Hukuk Dairesi",
@@ -94,6 +102,7 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "Kiracının tahliyesine ve birikmiş kira bedellerinin tahsiline karar verilmiştir.",
     keywords: ["tahliye", "kira borcu", "ihtar", "icra", "kiracı tahliyesi"],
     outcome: "plaintiff_won",
+    duration_days: 280,
   },
   // CEZA HUKUKU
   {
@@ -105,6 +114,7 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "Sanığın TCK 125/1 uyarınca adli para cezasına çarptırılmasına karar verilmiştir.",
     keywords: ["hakaret", "sosyal medya", "aleniyet", "adli para cezası", "TCK 125"],
     outcome: "plaintiff_won",
+    duration_days: 240,
   },
   {
     court: "Yargıtay 15. Ceza Dairesi",
@@ -115,6 +125,7 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "Sanığın nitelikli dolandırıcılıktan mahkumiyetine ve mağdurun zararının tazmin edilmesine karar verilmiştir.",
     keywords: ["dolandırıcılık", "internet", "sahte ilan", "nitelikli dolandırıcılık", "tazminat"],
     outcome: "plaintiff_won",
+    duration_days: 680,
   },
   // TİCARET HUKUKU
   {
@@ -126,6 +137,7 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "Haksız rekabetin tespitine, men'ine ve tazminata karar verilmiştir.",
     keywords: ["haksız rekabet", "ticari sır", "müşteri listesi", "tazminat", "rekabet yasağı"],
     outcome: "plaintiff_won",
+    duration_days: 510,
   },
   // MİRAS HUKUKU
   {
@@ -137,6 +149,7 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "Saklı pay oranında tenkise karar verilmiştir.",
     keywords: ["tenkis", "saklı pay", "vasiyetname", "miras", "mirasçı hakları"],
     outcome: "plaintiff_won",
+    duration_days: 620,
   },
   // İDARE HUKUKU
   {
@@ -148,6 +161,7 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "Savunma hakkı ihlali nedeniyle idari işlemin iptaline karar verilmiştir.",
     keywords: ["idari işlem", "iptal davası", "disiplin cezası", "savunma hakkı", "memur"],
     outcome: "plaintiff_won",
+    duration_days: 365,
   },
   // İCRA İFLAS
   {
@@ -159,6 +173,7 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "İtirazın iptaline, %20 icra inkar tazminatına karar verilmiştir.",
     keywords: ["itirazın iptali", "icra", "senet", "alacak", "icra inkar tazminatı"],
     outcome: "plaintiff_won",
+    duration_days: 300,
   },
   // Davalı kazanan örnekler
   {
@@ -170,6 +185,7 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "İşverenin haklı fesih yaptığına, işe iade talebinin reddine karar verilmiştir.",
     keywords: ["devamsızlık", "haklı fesih", "işveren hakkı", "tutanak", "işe iade reddi"],
     outcome: "defendant_won",
+    duration_days: 350,
   },
   {
     court: "Yargıtay 2. Hukuk Dairesi",
@@ -180,6 +196,7 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "Davacının yoksulluk nafakası talebinin reddine karar verilmiştir. Davacının çalışma gücü ve geliri yeterli bulunmuştur.",
     keywords: ["yoksulluk nafakası", "nafaka reddi", "gelir durumu", "çalışma gücü"],
     outcome: "defendant_won",
+    duration_days: 410,
   },
   {
     court: "Yargıtay 3. Hukuk Dairesi",
@@ -190,5 +207,6 @@ export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_sco
     ruling: "Ayıplı mal iddiasının reddine karar verilmiştir. Hasar kullanıcı hatasından kaynaklanmaktadır.",
     keywords: ["ayıplı mal reddi", "kullanıcı hatası", "garanti", "tüketici", "bilirkişi"],
     outcome: "defendant_won",
+    duration_days: 290,
   },
 ];

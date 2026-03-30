@@ -37,6 +37,7 @@ export interface Precedent {
   keywords: string[];
   outcome: "plaintiff_won" | "defendant_won" | "settled" | "dismissed";
   relevance_score?: number;
+  duration_days?: number; // Davanın kaç günde sonuçlandığı
 }
 
 export type CaseCategory =
@@ -73,6 +74,14 @@ export interface AnalysisResult {
   matchedPrecedents: (Precedent & { relevance_score: number })[];
   riskFactors: string[];
   suggestedActions: string[];
+  estimatedDuration?: {
+    minDays: number;
+    maxDays: number;
+    avgDays: number;
+    description: string;
+    phases: { name: string; duration: string }[];
+    precedentDurations: { case_number: string; court: string; duration_days: number; duration_label: string }[];
+  };
 }
 
 export interface Database {
