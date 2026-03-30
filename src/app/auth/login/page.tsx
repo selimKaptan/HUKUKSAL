@@ -26,7 +26,10 @@ export default function LoginPage() {
       setError(result.error);
       setLoading(false);
     } else {
-      router.push("/dashboard");
+      // Rol bazlı yönlendirme
+      const stored = localStorage.getItem("jg_user");
+      const userData = stored ? JSON.parse(stored) : null;
+      router.push(userData?.role === "lawyer" ? "/lawyer/dashboard" : "/dashboard");
     }
   };
 

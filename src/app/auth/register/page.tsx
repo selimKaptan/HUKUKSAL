@@ -1,50 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { motion } from "framer-motion";
-import { Scale, Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/lib/auth-context";
+import { Scale, User, Briefcase, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
-export default function RegisterPage() {
-  const router = useRouter();
-  const { signUp } = useAuth();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    if (password.length < 6) {
-      setError("Şifre en az 6 karakter olmalıdır.");
-      setLoading(false);
-      return;
-    }
-
-    const result = await signUp(email, password, name);
-    if (result.error) {
-      setError(result.error);
-      setLoading(false);
-    } else {
-      router.push("/dashboard");
-    }
-  };
-
+export default function RegisterSelectPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
+        className="w-full max-w-2xl"
       >
-        <div className="text-center mb-8">
+        <div className="text-center mb-10">
           <Link href="/" className="inline-flex items-center gap-2.5 mb-6">
             <div className="w-11 h-11 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
               <Scale className="w-6 h-6 text-white" />
@@ -53,81 +21,58 @@ export default function RegisterPage() {
               Justice<span className="text-blue-600">Guard</span>
             </span>
           </Link>
-          <h1 className="text-2xl font-bold text-slate-900">Kayıt Ol</h1>
-          <p className="text-slate-500 mt-1">Ücretsiz hesap oluşturun</p>
+          <h1 className="text-3xl font-black text-slate-900 mb-2">Hesap Oluştur</h1>
+          <p className="text-slate-500">Nasıl kayıt olmak istiyorsunuz?</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-                {error}
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Müvekkil Kartı */}
+          <Link href="/auth/register/client">
+            <motion.div
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              className="bg-white rounded-2xl border-2 border-slate-200 shadow-lg p-8 cursor-pointer hover:border-blue-500 hover:shadow-xl transition-all group"
+            >
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform">
+                <User className="w-8 h-8 text-white" />
               </div>
-            )}
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Ad Soyad</label>
-              <div className="relative">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ad Soyad"
-                  required
-                  className="w-full h-12 pl-11 pr-4 rounded-xl border-2 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                />
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Müvekkil</h2>
+              <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+                Davanızı analiz ettirin, emsal kararları inceleyin ve size uygun avukat bulun.
+              </p>
+              <div className="flex items-center gap-2 text-blue-600 font-semibold text-sm group-hover:gap-3 transition-all">
+                Müvekkil Olarak Kayıt Ol <ArrowRight className="w-4 h-4" />
               </div>
-            </div>
+            </motion.div>
+          </Link>
 
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">E-posta</label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ornek@email.com"
-                  required
-                  className="w-full h-12 pl-11 pr-4 rounded-xl border-2 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                />
+          {/* Avukat Kartı */}
+          <Link href="/auth/register/lawyer">
+            <motion.div
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              className="bg-white rounded-2xl border-2 border-slate-200 shadow-lg p-8 cursor-pointer hover:border-emerald-500 hover:shadow-xl transition-all group"
+            >
+              <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-emerald-200 group-hover:scale-110 transition-transform">
+                <Briefcase className="w-8 h-8 text-white" />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Şifre</label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="En az 6 karakter"
-                  required
-                  minLength={6}
-                  className="w-full h-12 pl-11 pr-4 rounded-xl border-2 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                />
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Avukat</h2>
+              <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+                Profilinizi oluşturun, uzmanlık alanlarınızı belirtin ve müvekkil bulun.
+              </p>
+              <div className="flex items-center gap-2 text-emerald-600 font-semibold text-sm group-hover:gap-3 transition-all">
+                Avukat Olarak Kayıt Ol <ArrowRight className="w-4 h-4" />
               </div>
-            </div>
-
-            <Button type="submit" size="lg" className="w-full" disabled={loading}>
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <ArrowRight className="w-4 h-4 mr-2" />
-              )}
-              {loading ? "Kayıt yapılıyor..." : "Kayıt Ol"}
-            </Button>
-          </form>
-
-          <p className="text-center text-sm text-slate-500 mt-6">
-            Zaten hesabınız var mı?{" "}
-            <Link href="/auth/login" className="text-blue-600 font-semibold hover:underline">
-              Giriş Yap
-            </Link>
-          </p>
+            </motion.div>
+          </Link>
         </div>
+
+        <p className="text-center text-sm text-slate-500 mt-8">
+          Zaten hesabınız var mı?{" "}
+          <Link href="/auth/login" className="text-blue-600 font-semibold hover:underline">
+            Giriş Yap
+          </Link>
+        </p>
       </motion.div>
     </div>
   );
