@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeCase } from "@/lib/analysis-engine";
+import { searchUyapPrecedents, getCategoryKeywords } from "@/lib/uyap-client";
 import type { CaseCategory } from "@/types/database";
 
 export async function POST(request: NextRequest) {
@@ -21,16 +22,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Simulate processing delay for UX
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const result = analyzeCase(
+    // 1. Yerel analiz motorunu çalıştır
+    const localResult = analyzeCase(
       eventSummary,
       category as CaseCategory,
       additionalNotes
     );
 
-    return NextResponse.json(result);
+    // 2. UYAP'tan gerçek emsal kararları ara (paralel)
+    let uyapResults = null;
+    try {
+      // Olay özetinden anahtar kelimeleri çıkar
+      const categoryKeywords = getCategoryKeywords(category);
+      const summaryWords = eventSummary
+        .split(/\s+/)
+        .filter((w: string) => w.length > 3)
+        .slice(0, 3)
+        .join(" ");
+      const searchKeyword = summaryWords || categoryKeywords[0] || "dava";
+
+      uyapResults = await searchUyapPrecedents({
+        aranacakKelime: searchKeyword,
+        pageSize: 5,
+        pageNumber: 1,
+      });
+    } catch {
+      // UYAP erişilemezse yerel sonuçlarla devam et
+      console.log("UYAP erişilemedi, yerel sonuçlar kullanılıyor.");
+    }
+
+    // 3. Sonuçları birleştir
+    const response = {
+      ...localResult,
+      uyapPrecedents: uyapResults?.success ? uyapResults.decisions : [],
+      uyapAvailable: uyapResults?.success || false,
+      uyapError: uyapResults?.error || null,
+      uyapTotalCount: uyapResults?.totalCount || 0,
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Analysis error:", error);
     return NextResponse.json(
