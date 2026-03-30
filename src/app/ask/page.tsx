@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Scale, ArrowLeft, Send, Loader2, User, Sparkles, MessageCircle, Lightbulb } from "lucide-react";
+import Markdown from "react-markdown";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
@@ -148,9 +149,15 @@ export default function AskPage() {
                       ? "bg-blue-600 text-white rounded-br-md"
                       : "bg-white border border-slate-200 text-slate-700 rounded-bl-md shadow-sm"
                   }`}>
-                    <div className={`text-sm leading-relaxed whitespace-pre-wrap ${m.role === "assistant" ? "prose-sm" : ""}`}>
-                      {m.content}
-                    </div>
+                    {m.role === "assistant" ? (
+                      <div className="text-sm leading-relaxed prose prose-sm prose-slate max-w-none prose-headings:text-base prose-headings:font-bold prose-headings:text-slate-900 prose-headings:mt-3 prose-headings:mb-1 prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-blockquote:my-2 prose-blockquote:text-amber-800 prose-blockquote:bg-amber-50 prose-blockquote:border-amber-300 prose-blockquote:rounded-lg prose-blockquote:px-3 prose-blockquote:py-2 prose-blockquote:not-italic prose-strong:text-slate-900">
+                        <Markdown>{m.content}</Markdown>
+                      </div>
+                    ) : (
+                      <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                        {m.content}
+                      </div>
+                    )}
                   </div>
                   {m.role === "user" && (
                     <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
