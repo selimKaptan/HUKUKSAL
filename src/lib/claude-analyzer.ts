@@ -68,9 +68,8 @@ Yukarıdaki olay özetini analiz et:
 Yanıtını SADECE geçerli JSON olarak ver, başka metin ekleme.`;
 
   const response = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 8192,
-    thinking: { type: "adaptive" },
+    model: "claude-haiku-4-5",
+    max_tokens: 4096,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: userMessage }],
   });
