@@ -10,6 +10,20 @@ import { Badge } from "@/components/ui/badge";
 import { CASE_CATEGORY_LABELS, type CaseCategory } from "@/types/database";
 import { calculateMediation, type MediationResult } from "@/lib/mediation-calculator";
 
+// Emsal verilerden kategori bazlı ortalama dava süreleri (ay)
+const AVG_DURATIONS: Record<CaseCategory, number> = {
+  is_hukuku: 14,
+  aile_hukuku: 13,
+  ticaret_hukuku: 17,
+  ceza_hukuku: 15,
+  tuketici_hukuku: 8,
+  kira_hukuku: 11,
+  miras_hukuku: 20,
+  idare_hukuku: 12,
+  icra_iflas: 9,
+  diger: 13,
+};
+
 export default function MediationPage() {
   const [category, setCategory] = useState<CaseCategory | "">("");
   const [claimAmount, setClaimAmount] = useState("");
@@ -17,6 +31,12 @@ export default function MediationPage() {
   const [hasLawyer, setHasLawyer] = useState(true);
   const [complexity, setComplexity] = useState<"low" | "medium" | "high">("medium");
   const [result, setResult] = useState<MediationResult | null>(null);
+
+  const handleCategoryChange = (cat: CaseCategory) => {
+    setCategory(cat);
+    setDuration(AVG_DURATIONS[cat].toString());
+    setResult(null);
+  };
 
   const handleCalculate = () => {
     if (!category || !claimAmount) return;
@@ -60,10 +80,10 @@ export default function MediationPage() {
             <div className="grid md:grid-cols-2 gap-5">
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700">Hukuki Kategori</label>
-                <select value={category} onChange={(e) => setCategory(e.target.value as CaseCategory)} className="w-full h-12 px-4 rounded-xl border-2 border-slate-200 bg-white text-slate-900 focus:border-blue-500 outline-none">
+                <select value={category} onChange={(e) => handleCategoryChange(e.target.value as CaseCategory)} className="w-full h-12 px-4 rounded-xl border-2 border-slate-200 bg-white text-slate-900 focus:border-blue-500 outline-none">
                   <option value="">Seçin</option>
                   {Object.entries(CASE_CATEGORY_LABELS).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
+                    <option key={key} value={key}>{label} (ort. {AVG_DURATIONS[key as CaseCategory]} ay)</option>
                   ))}
                 </select>
               </div>
