@@ -261,6 +261,7 @@ export default function DashboardPage() {
                 eventSummary={formData.eventSummary}
                 eventDate={formData.eventDate}
                 opposingParty={formData.opposingParty}
+                category={formData.category}
                 onUpdate={updateForm}
                 onNext={() => setCurrentStep(2)}
                 onBack={() => setCurrentStep(0)}
