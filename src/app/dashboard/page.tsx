@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Scale, FileSearch, History, Calculator, Clock, UserSearch, CreditCard, ArrowRight, LogOut } from "lucide-react";
+import { Scale, FileSearch, History, Calculator, Clock, UserSearch, CreditCard, ArrowRight, LogOut, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ProgressSteps } from "@/components/ui/progress-steps";
@@ -183,7 +183,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Hızlı Erişim Kartları */}
-            <div className="grid md:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <Link href="/history">
                 <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-blue-200 transition-all cursor-pointer group">
                   <History className="w-8 h-8 text-blue-500 mb-3 group-hover:scale-110 transition-transform" />
@@ -203,6 +203,13 @@ export default function DashboardPage() {
                   <Calculator className="w-8 h-8 text-amber-500 mb-3 group-hover:scale-110 transition-transform" />
                   <h3 className="font-bold text-slate-900 mb-1">Arabuluculuk</h3>
                   <p className="text-xs text-slate-500">Maliyet karsilastirmasi yapin</p>
+                </div>
+              </Link>
+              <Link href="/ask">
+                <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-violet-200 transition-all cursor-pointer group">
+                  <MessageCircle className="w-8 h-8 text-violet-500 mb-3 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-bold text-slate-900 mb-1">Hukuk Danismani</h3>
+                  <p className="text-xs text-slate-500">AI&apos;a soru sorun</p>
                 </div>
               </Link>
             </div>
