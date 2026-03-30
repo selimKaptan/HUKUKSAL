@@ -148,14 +148,15 @@ export function WizardStep1({ title, category, onUpdate, onNext }: Step1Props) {
   // Kategori ve yazılan metne göre filtrelenmiş öneriler
   const suggestions = useMemo(() => {
     if (!category) {
-      // Tüm kategorilerden öneriler
-      const all = Object.values(TITLE_SUGGESTIONS).flat();
+      const all = Object.entries(TITLE_SUGGESTIONS).flatMap(([cat, titles]) =>
+        titles.map((t) => ({ title: t, category: cat as CaseCategory }))
+      );
       if (!title.trim()) return all.slice(0, 8);
-      return all.filter((s) => s.toLowerCase().includes(title.toLowerCase())).slice(0, 8);
+      return all.filter((s) => s.title.toLowerCase().includes(title.toLowerCase())).slice(0, 8);
     }
-    const catSuggestions = TITLE_SUGGESTIONS[category as CaseCategory] || [];
+    const catSuggestions = (TITLE_SUGGESTIONS[category as CaseCategory] || []).map((t) => ({ title: t, category: category as CaseCategory }));
     if (!title.trim()) return catSuggestions;
-    return catSuggestions.filter((s) => s.toLowerCase().includes(title.toLowerCase()));
+    return catSuggestions.filter((s) => s.title.toLowerCase().includes(title.toLowerCase()));
   }, [title, category]);
 
   return (
@@ -197,21 +198,24 @@ export function WizardStep1({ title, category, onUpdate, onNext }: Step1Props) {
             >
               <div className="px-3 py-2 bg-blue-50 border-b border-blue-100 flex items-center gap-2">
                 <Lightbulb className="w-3.5 h-3.5 text-blue-500" />
-                <span className="text-xs font-medium text-blue-700">Oneriler {category ? `(${CASE_CATEGORY_LABELS[category as CaseCategory]})` : ""}</span>
+                <span className="text-xs font-medium text-blue-700">Oneriler {category ? `(${CASE_CATEGORY_LABELS[category as CaseCategory]})` : "- secince kategori otomatik belirlenir"}</span>
               </div>
               <div className="max-h-48 overflow-y-auto">
                 {suggestions.map((s) => (
                   <button
-                    key={s}
+                    key={s.title}
                     type="button"
                     onMouseDown={(e) => {
                       e.preventDefault();
-                      onUpdate({ title: s });
+                      onUpdate({ title: s.title, category: s.category });
                       setShowSuggestions(false);
                     }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors border-b border-slate-50 last:border-0"
+                    className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors border-b border-slate-50 last:border-0 flex items-center justify-between"
                   >
-                    {s}
+                    <span>{s.title}</span>
+                    {!category && (
+                      <span className="text-xs text-slate-400 ml-2 flex-shrink-0">{CASE_CATEGORY_LABELS[s.category]}</span>
+                    )}
                   </button>
                 ))}
               </div>
