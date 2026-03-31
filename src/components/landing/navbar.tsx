@@ -1,13 +1,13 @@
 "use client";
 
-import { Scale, LogOut, History, Calculator, Clock, UserSearch, Banknote, BookOpen, Bell, MessageSquare } from "lucide-react";
+import { Scale, LogOut, History, Calculator, Clock, UserSearch, Banknote, BookOpen, Bell, MessageSquare, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 
 export function Navbar() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -95,6 +95,13 @@ export function Navbar() {
                         <BookOpen className="w-4 h-4" /> Hukuki Sözlük
                       </Link>
                     </div>
+                    {isAdmin && (
+                      <div className="border-t border-slate-100 mt-1 pt-1">
+                        <Link href="/admin" className="flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 font-semibold hover:bg-red-50" onClick={() => setMenuOpen(false)}>
+                          <Shield className="w-4 h-4" /> Admin Paneli
+                        </Link>
+                      </div>
+                    )}
                     <div className="border-t border-slate-100 mt-1 pt-1">
                       <button
                         onClick={() => { signOut(); setMenuOpen(false); }}

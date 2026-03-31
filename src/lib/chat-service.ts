@@ -5,7 +5,7 @@ export interface ChatMessage {
   conversationId: string;
   senderId: string;
   senderName: string;
-  senderRole: "client" | "lawyer";
+  senderRole: "client" | "lawyer" | "admin";
   content: string;
   timestamp: string;
   read: boolean;
@@ -106,7 +106,7 @@ export function sendMessage(
   conversationId: string,
   senderId: string,
   senderName: string,
-  senderRole: "client" | "lawyer",
+  senderRole: "client" | "lawyer" | "admin",
   content: string
 ): ChatMessage {
   const messages = getStoredMessages();
