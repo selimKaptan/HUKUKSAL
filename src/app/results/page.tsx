@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Scale, ArrowLeft, RotateCcw, Sparkles, Cpu, Clock, Timer, CalendarDays, Share2, Copy, Check } from "lucide-react";
+import { Scale, ArrowLeft, RotateCcw, Sparkles, Cpu, Clock, Timer, CalendarDays, Share2, Check } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
