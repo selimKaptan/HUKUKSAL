@@ -4,42 +4,42 @@ import { CASE_CATEGORY_LABELS } from "@/types/database";
 
 const client = new Anthropic();
 
-const SYSTEM_PROMPT = `Sen JusticeGuard AI'sın — Türk hukuk sistemi konusunda uzman bir hukuki analiz asistanısın.
+const SYSTEM_PROMPT = `Sen JusticeGuard AI. Turk hukuku uzmanisin.
 
-GÖREV: Kullanıcının anlattığı olayı analiz et, GERÇEK emsal Yargıtay/Danıştay kararlarını bul ve detaylı bir hukuki analiz raporu oluştur.
+GOREV: Olayi analiz et, emsal karar bul, rapor olustur.
 
 KURALLAR:
-1. Türk hukuku çerçevesinde analiz yap.
-2. Kazanma olasılığını %15-%92 arasında hesapla.
-3. Güçlü ve zayıf yanları somut gerekçelerle belirt.
-4. GERÇEK Yargıtay, Danıştay veya Bölge Adliye Mahkemesi kararlarını referans göster. Bildiğin gerçek karar numaralarını, daire bilgilerini ve tarihleri yaz. Uydurma karar numarası VERME. Eğer tam numarayı bilmiyorsan, ilgili dairenin yerleşik içtihatlarını açıkla.
-5. Her emsal karar için: mahkeme adı, esas/karar numarası (biliyorsan), tarih, kısa özet, sonuç (davacı/davalı lehine) ve davanın kaç günde sonuçlandığı (tahmini) bilgilerini ver.
-6. "Dava aç", "Açma" veya "Avukata danış" şeklinde net tavsiye ver.
-7. Kesinlikle avukatlık hizmeti vermediğini belirt.
+- Kazanma olasiligi %15-%92
+- Guclu/zayif yanlari KISA yaz (her biri max 1 cumle)
+- 3 emsal karar bul (gercek Yargitay kararlari)
+- analysisReport KISA olsun (max 200 kelime)
+- JSON GECERLI olmali, string icinde tirnaksiz yaz
 
-ÇIKTI FORMATI (JSON):
+JSON FORMATI:
 {
-  "winProbability": number (15-92),
-  "strengths": string[] (en az 2, en fazla 6 madde - somut gerekçeli),
-  "weaknesses": string[] (en az 1, en fazla 5 madde - somut gerekçeli),
+  "winProbability": number,
+  "strengths": ["kisa madde 1", "kisa madde 2"],
+  "weaknesses": ["kisa madde 1"],
   "recommendation": "file_case" | "do_not_file" | "needs_review",
-  "analysisReport": string (detaylı markdown rapor - en az 500 kelime),
-  "riskFactors": string[] (risk faktörleri),
-  "suggestedActions": string[] (önerilen adımlar, en az 3),
+  "analysisReport": "kisa rapor metni",
+  "riskFactors": ["risk 1"],
+  "suggestedActions": ["adim 1", "adim 2", "adim 3"],
   "precedents": [
     {
-      "court": string (örn: "Yargıtay 9. Hukuk Dairesi"),
-      "case_number": string (örn: "2021/1234 E., 2022/5678 K." veya "Yerleşik İçtihat"),
-      "date": string (örn: "2022-03-15" veya tahmini yıl),
-      "summary": string (kararın özeti - en az 2 cümle),
-      "ruling": string (mahkemenin kararı),
-      "outcome": "plaintiff_won" | "defendant_won" | "settled" | "dismissed",
-      "duration_days": number (davanın tahmini süresi gün cinsinden),
-      "relevance_score": number (0-1 arası benzerlik skoru),
-      "keywords": string[] (anahtar kelimeler)
+      "court": "Yargitay X. Hukuk Dairesi",
+      "case_number": "2021/1234 E.",
+      "date": "2022",
+      "summary": "kisa ozet",
+      "ruling": "karar",
+      "outcome": "plaintiff_won",
+      "duration_days": 400,
+      "relevance_score": 0.8,
+      "keywords": ["kelime1", "kelime2"]
     }
-  ] (en az 3, en fazla 5 emsal karar)
-}`;
+  ]
+}
+
+SADECE JSON ver. Baska metin EKLEME.`;
 
 export async function analyzeCaseWithClaude(
   eventSummary: string,
@@ -48,33 +48,19 @@ export async function analyzeCaseWithClaude(
 ): Promise<AnalysisResult & { matchedPrecedents: (Precedent & { relevance_score: number })[] }> {
   const categoryLabel = CASE_CATEGORY_LABELS[category];
 
-  const userMessage = `## DAVA BİLGİLERİ
+  const userMessage = `Kategori: ${categoryLabel}
+Olay: ${eventSummary}
+${additionalNotes ? `Ek: ${additionalNotes}` : ""}
 
-**Kategori:** ${categoryLabel}
-
-**Olay Özeti:**
-${eventSummary}
-
-${additionalNotes ? `**Ek Notlar:**\n${additionalNotes}\n` : ""}
-
----
-
-Yukarıdaki olay özetini analiz et:
-1. Bu davaya benzer GERÇEK Yargıtay/Danıştay emsal kararlarını bul (bildiğin gerçek kararlar)
-2. Kazanma olasılığını hesapla
-3. Güçlü ve zayıf yanları belirle
-4. Detaylı hukuki analiz raporu yaz
-
-Yanıtını SADECE geçerli JSON olarak ver, başka metin ekleme.`;
+JSON olarak analiz et.`;
 
   const response = await client.messages.create({
     model: "claude-haiku-4-5",
-    max_tokens: 4096,
+    max_tokens: 3000,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: userMessage }],
   });
 
-  // Extract text from response
   let jsonText = "";
   for (const block of response.content) {
     if (block.type === "text") {
@@ -89,15 +75,39 @@ Yanıtını SADECE geçerli JSON olarak ver, başka metin ekleme.`;
   if (jsonText.endsWith("```")) jsonText = jsonText.slice(0, -3);
   jsonText = jsonText.trim();
 
-  const analysis = JSON.parse(jsonText);
+  // JSON parse - kesik JSON'u düzeltmeye çalış
+  let analysis;
+  try {
+    analysis = JSON.parse(jsonText);
+  } catch {
+    // JSON kesikse, kapanmamış string ve parantezleri kapat
+    let fixed = jsonText;
+    // Kapanmamış string'i kapat
+    const quoteCount = (fixed.match(/"/g) || []).length;
+    if (quoteCount % 2 !== 0) fixed += '"';
+    // Kapanmamış array'leri kapat
+    const openBrackets = (fixed.match(/\[/g) || []).length;
+    const closeBrackets = (fixed.match(/\]/g) || []).length;
+    for (let i = 0; i < openBrackets - closeBrackets; i++) fixed += "]";
+    // Kapanmamış object'leri kapat
+    const openBraces = (fixed.match(/\{/g) || []).length;
+    const closeBraces = (fixed.match(/\}/g) || []).length;
+    for (let i = 0; i < openBraces - closeBraces; i++) fixed += "}";
 
-  // Claude'dan gelen emsal kararları Precedent formatına dönüştür
+    try {
+      analysis = JSON.parse(fixed);
+    } catch {
+      // Hala parse edilemiyorsa, temel yapıyı döndür
+      throw new Error("Claude JSON parse hatasi: " + jsonText.substring(0, 200));
+    }
+  }
+
   const matchedPrecedents: (Precedent & { relevance_score: number })[] = (analysis.precedents || []).map(
     (p: Record<string, unknown>, i: number) => ({
       id: `claude_${i}`,
       created_at: new Date().toISOString(),
-      court: (p.court as string) || "Yargıtay",
-      case_number: (p.case_number as string) || "Yerleşik İçtihat",
+      court: (p.court as string) || "Yargitay",
+      case_number: (p.case_number as string) || "Yerlesik Ictihat",
       date: (p.date as string) || "",
       category,
       summary: (p.summary as string) || "",
@@ -110,13 +120,13 @@ Yanıtını SADECE geçerli JSON olarak ver, başka metin ekleme.`;
   );
 
   return {
-    winProbability: Math.max(15, Math.min(92, analysis.winProbability)),
-    strengths: analysis.strengths || [],
-    weaknesses: analysis.weaknesses || [],
+    winProbability: Math.max(15, Math.min(92, analysis.winProbability || 50)),
+    strengths: analysis.strengths || ["Detayli analiz icin avukata danisin"],
+    weaknesses: analysis.weaknesses || ["Ek bilgi gerekli"],
     recommendation: analysis.recommendation || "needs_review",
     analysisReport: analysis.analysisReport || "",
     matchedPrecedents,
     riskFactors: analysis.riskFactors || [],
-    suggestedActions: analysis.suggestedActions || [],
+    suggestedActions: analysis.suggestedActions || ["Avukata danisin"],
   };
 }
