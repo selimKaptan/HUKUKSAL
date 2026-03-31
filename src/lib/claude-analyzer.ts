@@ -11,8 +11,9 @@ GOREV: Olayi analiz et, emsal karar bul, rapor olustur.
 KURALLAR:
 - Kazanma olasiligi %15-%92
 - Guclu/zayif yanlari KISA yaz (her biri max 1 cumle)
-- 3 emsal karar bul (gercek Yargitay kararlari)
-- analysisReport KISA olsun (max 200 kelime)
+- 7 emsal karar bul (gercek Yargitay kararlari, davaci lehine 4 + davali lehine 3 ideal)
+- analysisReport KISA olsun (max 150 kelime)
+- Her emsal karar KISA ozet (max 1 cumle summary, max 1 cumle ruling)
 - JSON GECERLI olmali, string icinde tirnaksiz yaz
 
 JSON FORMATI:
@@ -56,7 +57,7 @@ JSON olarak analiz et.`;
 
   const response = await client.messages.create({
     model: "claude-haiku-4-5",
-    max_tokens: 3000,
+    max_tokens: 4000,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: userMessage }],
   });
