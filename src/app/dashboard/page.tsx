@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Scale, FileSearch, History, Calculator, Clock, UserSearch, CreditCard, ArrowRight, LogOut, MessageCircle, Shield } from "lucide-react";
+import { Scale, FileSearch, History, Calculator, Clock, UserSearch, CreditCard, ArrowRight, LogOut, MessageCircle, Shield, Mail } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ProgressSteps } from "@/components/ui/progress-steps";
@@ -215,7 +215,17 @@ export default function DashboardPage() {
             </div>
 
             {/* Alt Araçlar */}
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-3 gap-4">
+              <Link href="/messages">
+                <div className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-all flex items-center gap-4 cursor-pointer">
+                  <Mail className="w-6 h-6 text-slate-400" />
+                  <div>
+                    <h3 className="font-semibold text-slate-900 text-sm">Mesajlar</h3>
+                    <p className="text-xs text-slate-500">Avukatınızla yazışın</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-slate-300 ml-auto" />
+                </div>
+              </Link>
               <Link href="/tools/statute-of-limitations">
                 <div className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-all flex items-center gap-4 cursor-pointer">
                   <Clock className="w-6 h-6 text-slate-400" />
