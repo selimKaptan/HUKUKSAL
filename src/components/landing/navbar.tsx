@@ -119,8 +119,8 @@ export function Navbar() {
               <Link href="/auth/login">
                 <Button variant="ghost" size="sm">Giriş Yap</Button>
               </Link>
-              <Link href="/dashboard">
-                <Button size="sm">Analiz Başlat</Button>
+              <Link href="/auth/register">
+                <Button size="sm">Üye Ol</Button>
               </Link>
             </>
           )}

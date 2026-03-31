@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Scale } from "lucide-react";
@@ -27,7 +27,7 @@ const STEPS = ["Dava Bilgileri", "Olay Detayı", "Belgeler & Analiz"];
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [streamStatus, setStreamStatus] = useState<string>("");
@@ -39,6 +39,23 @@ export default function DashboardPage() {
     opposingParty: "",
     additionalNotes: "",
   });
+
+  // Auth koruması - üye olmayan kullanıcıları login'e yönlendir
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/auth/login");
+    }
+  }, [authLoading, user, router]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="animate-pulse text-slate-400">Yükleniyor...</div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   const updateForm = (data: Partial<FormData>) => {
     setFormData((prev) => ({ ...prev, ...data }));

@@ -1,11 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Scale, Shield, FileSearch, ArrowRight, Sparkles } from "lucide-react";
+import { Scale, Shield, FileSearch, ArrowRight, Sparkles, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useAuth } from "@/lib/auth-context";
 
 export function HeroSection() {
+  const { user } = useAuth();
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Background decoration */}
@@ -58,15 +60,29 @@ export function HeroSection() {
           transition={{ duration: 0.8, delay: 0.3 }}
           className="flex flex-col sm:flex-row gap-4 justify-center items-center"
         >
-          <Link href="/dashboard">
-            <Button size="xl" className="group text-lg px-10">
-              Ücretsiz Analiz Başlat
-              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </Link>
-          <Link href="#features">
+          {user ? (
+            <Link href="/dashboard">
+              <Button size="xl" className="group text-lg px-10">
+                Analiz Başlat
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/auth/register">
+              <Button size="xl" className="group text-lg px-10">
+                Ücretsiz Üye Ol & Başla
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+          )}
+          <Link href={user ? "#features" : "/auth/login"}>
             <Button variant="outline" size="xl" className="text-lg">
-              Nasıl Çalışır?
+              {user ? "Nasıl Çalışır?" : (
+                <>
+                  <Lock className="mr-2 w-4 h-4" />
+                  Giriş Yap
+                </>
+              )}
             </Button>
           </Link>
         </motion.div>
@@ -161,6 +177,7 @@ export function FeaturesSection() {
 }
 
 export function CTASection() {
+  const { user } = useAuth();
   return (
     <section className="py-24 bg-gradient-to-br from-blue-600 to-indigo-700">
       <div className="max-w-4xl mx-auto px-6 text-center">
@@ -173,14 +190,16 @@ export function CTASection() {
             Hakkınızı Bilin, Bilinçli Adım Atın
           </h2>
           <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
-            Davanızı analiz edin, emsal kararlarla karşılaştırın ve avukatınıza hazırlıklı gidin.
+            {user
+              ? "Davanızı analiz edin, emsal kararlarla karşılaştırın ve avukatınıza hazırlıklı gidin."
+              : "Ücretsiz üye olun, davanızı analiz edin ve avukatınıza hazırlıklı gidin."}
           </p>
-          <Link href="/dashboard">
+          <Link href={user ? "/dashboard" : "/auth/register"}>
             <Button
               size="xl"
               className="bg-white text-blue-700 hover:bg-blue-50 shadow-xl text-lg px-10 hover:scale-[1.02]"
             >
-              Hemen Başla
+              {user ? "Hemen Başla" : "Ücretsiz Üye Ol"}
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
           </Link>
