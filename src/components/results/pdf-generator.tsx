@@ -87,18 +87,29 @@ export function PDFGenerator({ result, caseTitle, category }: PDFGeneratorProps)
 
     // Precedents
     addText("EMSAL KARAR ANALIZI", 13, "bold", [37, 99, 235]);
+    addText(`Toplam ${result.matchedPrecedents.length} emsal karar bulundu`, 9, "normal", [100, 100, 100]);
     y += 3;
     result.matchedPrecedents.forEach((p, i) => {
       addText(`${i + 1}. ${p.court} - ${p.case_number}`, 11, "bold");
       addText(`Ozet: ${p.summary}`, 9);
       addText(`Karar: ${p.ruling}`, 9);
-      addText(`Benzerlik: %${Math.round(p.relevance_score * 100)} | Sonuc: ${
-        p.outcome === "plaintiff_won" ? "Davaci Lehine" : p.outcome === "defendant_won" ? "Davali Lehine" : "Uzlasma"
-      }`, 9, "normal", [100, 100, 100]);
+      const outcomeText = p.outcome === "plaintiff_won" ? "Davaci Lehine" : p.outcome === "defendant_won" ? "Davali Lehine" : "Uzlasma/Red";
+      const durationText = p.duration_days ? ` | Sure: ${p.duration_days > 365 ? (p.duration_days / 365).toFixed(1) + " yil" : Math.round(p.duration_days / 30) + " ay"}` : "";
+      addText(`Benzerlik: %${Math.round(p.relevance_score * 100)} | Sonuc: ${outcomeText}${durationText}`, 9, "normal", [100, 100, 100]);
       y += 3;
     });
 
     addLine();
+
+    // Risk factors
+    if (result.riskFactors && result.riskFactors.length > 0) {
+      addText("RISK FAKTORLERI", 13, "bold", [239, 68, 68]);
+      result.riskFactors.forEach((r) => {
+        addText(`  ! ${r}`, 10);
+      });
+      y += 5;
+      addLine();
+    }
 
     // Suggested actions
     addText("ONERILEN ADIMLAR", 13, "bold");

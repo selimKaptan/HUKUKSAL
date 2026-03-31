@@ -2,22 +2,34 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Scale, ArrowLeft, Search, Star, MapPin, Briefcase, Phone, Mail, MessageCircle, BadgeCheck, Users } from "lucide-react";
+import { Scale, ArrowLeft, Search, Star, MapPin, Briefcase, Phone, Mail, MessageCircle, BadgeCheck, Users, Send, Check } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CASE_CATEGORY_LABELS, type CaseCategory } from "@/types/database";
 import { findLawyers, type Lawyer } from "@/lib/lawyer-data";
-import { getRegisteredLawyers, type User } from "@/lib/auth-context";
+import { getRegisteredLawyers, useAuth, type User } from "@/lib/auth-context";
+import { sendMessage } from "@/lib/messaging";
 
 const CITIES = ["İstanbul", "Ankara", "İzmir", "Bursa", "Antalya", "Adana", "Konya", "Gaziantep", "Kocaeli", "Mersin"];
 
 export default function FindLawyerPage() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [category, setCategory] = useState<CaseCategory | "">("");
   const [city, setCity] = useState("");
   const [results, setResults] = useState<{ type: "registered" | "sample"; data: User | Lawyer }[]>([]);
   const [searched, setSearched] = useState(false);
+  const [messageSent, setMessageSent] = useState<string | null>(null);
+
+  const handleSendMessage = (lawyerId: string, lawyerName: string) => {
+    if (!user) { router.push("/auth/login"); return; }
+    sendMessage(user.id, user.name || "Müvekkil", user.role, lawyerId, lawyerName, "lawyer", `Merhaba ${lawyerName}, JusticeGuard üzerinden size ulaşıyorum. Hukuki konuda danışmanlık almak istiyorum.`);
+    setMessageSent(lawyerId);
+    setTimeout(() => setMessageSent(null), 3000);
+  };
 
   const handleSearch = () => {
     const combined: { type: "registered" | "sample"; data: User | Lawyer }[] = [];
@@ -136,9 +148,11 @@ export default function FindLawyerPage() {
                                   {p.specialties.map((s) => <Badge key={s} variant="outline" className="text-xs">{CASE_CATEGORY_LABELS[s]}</Badge>)}
                                 </div>
                                 <div className="flex items-center gap-3 flex-wrap pt-3 border-t border-slate-100">
+                                  <Button size="sm" onClick={(e) => { e.stopPropagation(); handleSendMessage(lawyer.id, lawyer.name || ""); }} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700">
+                                    {messageSent === lawyer.id ? <><Check className="w-3.5 h-3.5" /> Gönderildi</> : <><Send className="w-3.5 h-3.5" /> Mesaj Gönder</>}
+                                  </Button>
                                   <Badge variant="default" className="gap-1"><MessageCircle className="w-3 h-3" /> {p.consultationFee}</Badge>
                                   {p.phone && <span className="flex items-center gap-1 text-xs text-slate-500"><Phone className="w-3.5 h-3.5" /> {p.phone}</span>}
-                                  <span className="flex items-center gap-1 text-xs text-slate-500"><Mail className="w-3.5 h-3.5" /> {lawyer.email}</span>
                                 </div>
                               </div>
                             </div>
