@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  LEGAL_GLOSSARY,
   GLOSSARY_CATEGORIES,
   searchGlossary,
   getTermsByCategory,
@@ -128,7 +127,7 @@ export default function GlossaryPage() {
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
                       <h3 className="text-lg font-bold text-slate-900">{term.term}</h3>
-                      <Badge variant="secondary">{term.category}</Badge>
+                      <Badge variant="outline">{term.category}</Badge>
                     </div>
                     <p className="text-slate-600 text-sm leading-relaxed mb-3">
                       {term.definition}

@@ -135,11 +135,10 @@ export default function ChatPage() {
 
   const getUnreadForConv = (conv: Conversation) => {
     if (!user) return 0;
-    return messages.filter
-      ? getMessages(conv.id).filter(
-          (m) => m.senderId !== user.id && !m.read
-        ).length
-      : 0;
+    const convMessages = getMessages(conv.id);
+    return convMessages.filter(
+      (m) => m.senderId !== user.id && !m.read
+    ).length;
   };
 
   const handleSend = () => {

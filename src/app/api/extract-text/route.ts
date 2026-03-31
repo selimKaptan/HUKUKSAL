@@ -67,32 +67,33 @@ export async function POST(request: NextRequest) {
 
     const isPdf = file.type === "application/pdf";
 
-    const content: Anthropic.MessageCreateParams["content"] = isPdf
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const content: any[] = isPdf
       ? [
           {
-            type: "document" as const,
+            type: "document",
             source: {
-              type: "base64" as const,
+              type: "base64",
               media_type: "application/pdf",
               data: base64,
             },
           },
           {
-            type: "text" as const,
+            type: "text",
             text: "Bu belgeyi analiz et ve aşağıdaki bilgileri çıkar.",
           },
         ]
       : [
           {
-            type: "image" as const,
+            type: "image",
             source: {
-              type: "base64" as const,
-              media_type: mediaType as "image/jpeg" | "image/png" | "image/webp",
+              type: "base64",
+              media_type: mediaType,
               data: base64,
             },
           },
           {
-            type: "text" as const,
+            type: "text",
             text: "Bu belge görüntüsünü analiz et ve aşağıdaki bilgileri çıkar.",
           },
         ];

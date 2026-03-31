@@ -70,12 +70,12 @@ export function checkRateLimit(ip: string): {
  */
 function cleanup(): void {
   const now = Date.now();
-  for (const [ip, record] of store) {
+  store.forEach((record, ip) => {
     record.timestamps = record.timestamps.filter((t) => now - t < HOUR_MS);
     if (record.timestamps.length === 0) {
       store.delete(ip);
     }
-  }
+  });
 }
 
 // Start periodic cleanup (unref so it doesn't keep the process alive)

@@ -96,7 +96,7 @@ export default function CourtFeesPage() {
             <div className="flex items-center gap-3 mb-2">
               <Banknote className="w-6 h-6 text-blue-600" />
               <h2 className="text-xl font-bold text-slate-900">Harc Detaylari</h2>
-              <Badge variant="secondary" className="ml-auto">
+              <Badge variant="outline" className="ml-auto">
                 {CASE_CATEGORY_LABELS[result.category as CaseCategory] || result.category}
               </Badge>
             </div>
