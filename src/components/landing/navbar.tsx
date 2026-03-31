@@ -1,6 +1,6 @@
 "use client";
 
-import { Scale, LogOut, History, Calculator, Clock, UserSearch, CreditCard, MessageCircle } from "lucide-react";
+import { Scale, LogOut, History, Calculator, Clock, UserSearch, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
