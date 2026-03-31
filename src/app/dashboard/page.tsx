@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Scale, FileSearch, History, Calculator, Clock, UserSearch, CreditCard, ArrowRight, LogOut, MessageCircle, Shield, Mail } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { DarkModeToggle } from "@/components/dark-mode-toggle";
 import { ProgressSteps } from "@/components/ui/progress-steps";
 import { WizardStep1 } from "@/components/dashboard/wizard-step1";
 import { WizardStep2 } from "@/components/dashboard/wizard-step2";
@@ -146,8 +147,9 @@ export default function DashboardPage() {
               Justice<span className="text-blue-600">Guard</span>
             </span>
           </Link>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-500 hidden sm:block">{user.name || user.email}</span>
+          <div className="flex items-center gap-2">
+            <DarkModeToggle />
+            <span className="text-sm text-slate-500 dark:text-slate-400 hidden sm:block">{user.name || user.email}</span>
             <Button variant="ghost" size="sm" onClick={() => { signOut(); router.push("/"); }}>
               <LogOut className="w-4 h-4" />
             </Button>

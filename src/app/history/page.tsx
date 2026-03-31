@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Scale, ArrowLeft, Trash2, Eye, Clock, TrendingUp, Calendar } from "lucide-react";
+import { Scale, ArrowLeft, Trash2, Eye, Clock, TrendingUp, Calendar, Search, Filter } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,6 +17,14 @@ export default function HistoryPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [cases, setCases] = useState<SavedCase[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string>("");
+
+  const filteredCases = cases.filter((c) => {
+    const matchSearch = !searchQuery || c.title.toLowerCase().includes(searchQuery.toLowerCase()) || c.eventSummary.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchCategory = !filterCategory || c.category === filterCategory;
+    return matchSearch && matchCategory;
+  });
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -108,14 +116,41 @@ export default function HistoryPage() {
           Dashboard
         </Link>
 
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-black text-slate-900">Dava Geçmişi</h1>
-            <p className="text-slate-500 mt-1">
-              {user?.name && `${user.name}, `}toplam {cases.length} analiz
-            </p>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-black text-slate-900">Dava Geçmişi</h1>
+          <p className="text-slate-500 mt-1">{user?.name && `${user.name}, `}toplam {cases.length} analiz</p>
         </div>
+
+        {/* Arama ve Filtreleme */}
+        {cases.length > 0 && (
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Dava başlığı veya olay özeti ara..."
+                className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:border-blue-400"
+              />
+            </div>
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="h-10 pl-10 pr-8 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:border-blue-400 appearance-none"
+              >
+                <option value="">Tüm Kategoriler</option>
+                {Object.entries(CASE_CATEGORY_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+            {(searchQuery || filterCategory) && (
+              <p className="text-xs text-slate-500 self-center">{filteredCases.length} sonuç</p>
+            )}
+          </div>
+        )}
 
         {cases.length === 0 ? (
           <motion.div
@@ -132,7 +167,7 @@ export default function HistoryPage() {
           </motion.div>
         ) : (
           <div className="grid gap-4">
-            {cases.map((c, index) => (
+            {filteredCases.map((c, index) => (
               <motion.div
                 key={c.id}
                 initial={{ opacity: 0, y: 20 }}
