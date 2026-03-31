@@ -2,6 +2,11 @@
  * Kullanım limiti ve abonelik yönetimi
  */
 
+// Admin e-postaları - sınırsız hak
+const ADMIN_EMAILS = [
+  "selim@barbarosshipping.com",
+];
+
 export interface UserSubscription {
   planId: string;
   startDate: string;
@@ -13,7 +18,24 @@ export interface UserSubscription {
 
 const STORAGE_KEY = "jg_subscription";
 
-export function getUserSubscription(userId: string): UserSubscription {
+export function isAdmin(email?: string): boolean {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.toLowerCase());
+}
+
+export function getUserSubscription(userId: string, email?: string): UserSubscription {
+  // Admin her zaman sınırsız
+  if (isAdmin(email)) {
+    return {
+      planId: "admin",
+      startDate: new Date().toISOString(),
+      endDate: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000).toISOString(),
+      analysisUsed: 0,
+      analysisLimit: -1,
+      status: "active",
+    };
+  }
+
   if (typeof window === "undefined") {
     return getDefaultSubscription();
   }
@@ -22,7 +44,6 @@ export function getUserSubscription(userId: string): UserSubscription {
     const stored = localStorage.getItem(`${STORAGE_KEY}_${userId}`);
     if (stored) {
       const sub: UserSubscription = JSON.parse(stored);
-      // Süre kontrolü
       if (new Date(sub.endDate) < new Date() && sub.planId !== "free") {
         sub.status = "expired";
         saveSubscription(userId, sub);
@@ -67,8 +88,8 @@ export function activatePlan(userId: string, planId: string): void {
   saveSubscription(userId, sub);
 }
 
-export function canMakeAnalysis(userId: string): { allowed: boolean; remaining: number; message?: string } {
-  const sub = getUserSubscription(userId);
+export function canMakeAnalysis(userId: string, email?: string): { allowed: boolean; remaining: number; message?: string } {
+  const sub = getUserSubscription(userId, email);
 
   if (sub.status !== "active") {
     return { allowed: false, remaining: 0, message: "Aboneliğiniz sona ermiş. Lütfen plan yenileyin." };

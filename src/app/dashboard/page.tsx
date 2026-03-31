@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Scale, FileSearch, History, Calculator, Clock, UserSearch, CreditCard, ArrowRight, LogOut, MessageCircle } from "lucide-react";
+import { Scale, FileSearch, History, Calculator, Clock, UserSearch, CreditCard, ArrowRight, LogOut, MessageCircle, Shield } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ProgressSteps } from "@/components/ui/progress-steps";
@@ -12,7 +12,7 @@ import { WizardStep2 } from "@/components/dashboard/wizard-step2";
 import { useAuth } from "@/lib/auth-context";
 import { saveCaseResult } from "@/lib/case-storage";
 import { saveCase } from "@/lib/db";
-import { canMakeAnalysis, incrementAnalysisUsage } from "@/lib/subscription";
+import { canMakeAnalysis, incrementAnalysisUsage, isAdmin } from "@/lib/subscription";
 import { WizardStep3 } from "@/components/dashboard/wizard-step3";
 import type { CaseCategory } from "@/types/database";
 
@@ -55,7 +55,7 @@ export default function DashboardPage() {
   const handleSubmit = async () => {
     // Kullanım limiti kontrolü
     if (user) {
-      const check = canMakeAnalysis(user.id);
+      const check = canMakeAnalysis(user.id, user.email);
       if (!check.allowed) {
         alert(check.message || "Analiz limitiniz dolmuş.");
         router.push("/pricing");
@@ -237,6 +237,20 @@ export default function DashboardPage() {
                 </div>
               </Link>
             </div>
+
+            {/* Admin Panel Linki */}
+            {user && isAdmin(user.email) && (
+              <Link href="/admin" className="mt-4 block">
+                <div className="bg-gradient-to-r from-red-500 to-rose-600 rounded-xl p-4 flex items-center gap-4 text-white hover:shadow-lg transition-all">
+                  <Shield className="w-6 h-6" />
+                  <div>
+                    <h3 className="font-bold text-sm">Admin Panel</h3>
+                    <p className="text-xs text-red-100">Sinirsiz erisim - Yonetim paneli</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 ml-auto" />
+                </div>
+              </Link>
+            )}
           </motion.div>
         )}
 
