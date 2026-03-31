@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Scale, ArrowLeft, RotateCcw, Sparkles, Cpu, Clock, Timer, CalendarDays } from "lucide-react";
+import { Scale, ArrowLeft, RotateCcw, Sparkles, Cpu, Clock, Timer, CalendarDays, Share2, Copy, Check } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,22 @@ interface StoredData {
 export default function ResultsPage() {
   const router = useRouter();
   const [data, setData] = useState<StoredData | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    const text = data ? `JusticeGuard Analiz: "${data.caseTitle}" - Kazanma Olasılığı: %${data.result.winProbability}` : "";
+    const url = window.location.href;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "JusticeGuard Analiz Sonucu", text, url });
+      } catch { /* cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   useEffect(() => {
     const stored = sessionStorage.getItem("analysisResult");
@@ -66,12 +82,18 @@ export default function ResultsPage() {
               Justice<span className="text-blue-600">Guard</span>
             </span>
           </Link>
-          <Link href="/dashboard">
-            <Button variant="outline" size="sm">
-              <RotateCcw className="mr-2 w-4 h-4" />
-              Yeni Analiz
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleShare}>
+              {copied ? <Check className="mr-1 w-4 h-4 text-emerald-500" /> : <Share2 className="mr-1 w-4 h-4" />}
+              {copied ? "Kopyalandı" : "Paylaş"}
             </Button>
-          </Link>
+            <Link href="/dashboard">
+              <Button variant="outline" size="sm">
+                <RotateCcw className="mr-2 w-4 h-4" />
+                Yeni Analiz
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
