@@ -36,9 +36,6 @@ export function Navbar() {
           <Link href="/tools/find-lawyer" className="px-3 py-2 text-sm text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1.5">
             <UserSearch className="w-3.5 h-3.5" /> Avukat Bul
           </Link>
-          <Link href="/ask" className="px-3 py-2 text-sm text-slate-600 hover:text-violet-600 rounded-lg hover:bg-violet-50 transition-colors flex items-center gap-1.5">
-            <MessageCircle className="w-3.5 h-3.5" /> Soru Sor
-          </Link>
         </div>
 
         <div className="flex items-center gap-3">
