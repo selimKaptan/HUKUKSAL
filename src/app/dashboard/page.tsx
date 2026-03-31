@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Scale, FileSearch, History, Calculator, Clock, UserSearch, CreditCard, ArrowRight, LogOut, MessageCircle, Shield, Mail } from "lucide-react";
+import { Scale, FileSearch, History, Calculator, Clock, UserSearch, CreditCard, ArrowRight, LogOut, MessageCircle, Shield, Mail, Gift } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DarkModeToggle } from "@/components/dark-mode-toggle";
@@ -249,6 +249,18 @@ export default function DashboardPage() {
                 </div>
               </Link>
             </div>
+
+            {/* Referans */}
+            <Link href="/referral" className="mt-4 block">
+              <div className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl p-4 flex items-center gap-4 text-white hover:shadow-lg transition-all">
+                <Gift className="w-6 h-6" />
+                <div>
+                  <h3 className="font-bold text-sm">Arkadaşını Davet Et</h3>
+                  <p className="text-xs text-amber-100">Her davet = +1 ücretsiz analiz</p>
+                </div>
+                <ArrowRight className="w-4 h-4 ml-auto" />
+              </div>
+            </Link>
 
             {/* Admin Panel Linki */}
             {user && isAdmin(user.email) && (
