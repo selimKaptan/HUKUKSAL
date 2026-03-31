@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Scale, ArrowLeft, Trash2, Eye, Clock, TrendingUp, Calendar } from "lucide-react";
+import { Scale, ArrowLeft, Trash2, Eye, Clock, TrendingUp, Calendar, GitCompare, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,6 +17,8 @@ export default function HistoryPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [cases, setCases] = useState<SavedCase[]>([]);
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -62,6 +64,18 @@ export default function HistoryPage() {
         setCases((prev) => prev.filter((c) => c.id !== caseId));
       }
     }
+  };
+
+  const toggleCompareSelect = (caseId: string) => {
+    setSelectedForCompare((prev) => {
+      if (prev.includes(caseId)) return prev.filter((id) => id !== caseId);
+      if (prev.length >= 3) return prev; // Max 3 karşılaştırma
+      return [...prev, caseId];
+    });
+  };
+
+  const getComparedCases = () => {
+    return cases.filter((c) => selectedForCompare.includes(c.id));
   };
 
   const handleView = (savedCase: SavedCase) => {
@@ -115,7 +129,130 @@ export default function HistoryPage() {
               {user?.name && `${user.name}, `}toplam {cases.length} analiz
             </p>
           </div>
+          {cases.length >= 2 && (
+            <Button
+              variant={compareMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                setCompareMode(!compareMode);
+                setSelectedForCompare([]);
+              }}
+            >
+              <GitCompare className="w-4 h-4 mr-2" />
+              {compareMode ? "Karşılaştırmayı Kapat" : "Karşılaştır"}
+            </Button>
+          )}
         </div>
+
+        {/* Karşılaştırma Paneli */}
+        {compareMode && selectedForCompare.length >= 2 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 bg-white rounded-2xl border border-blue-200 shadow-xl p-6"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <GitCompare className="w-5 h-5 text-blue-600" />
+                Analiz Karşılaştırması
+              </h2>
+              <Button variant="ghost" size="icon" onClick={() => setSelectedForCompare([])}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left py-2 px-3 text-slate-500 font-medium">Özellik</th>
+                    {getComparedCases().map((c) => (
+                      <th key={c.id} className="text-left py-2 px-3 text-slate-700 font-bold">
+                        {c.title.length > 25 ? c.title.substring(0, 25) + "..." : c.title}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-slate-100">
+                    <td className="py-2 px-3 text-slate-500">Kategori</td>
+                    {getComparedCases().map((c) => (
+                      <td key={c.id} className="py-2 px-3">
+                        <Badge variant="outline">{CASE_CATEGORY_LABELS[c.category]}</Badge>
+                      </td>
+                    ))}
+                  </tr>
+                  <tr className="border-b border-slate-100">
+                    <td className="py-2 px-3 text-slate-500">Kazanma Olasılığı</td>
+                    {getComparedCases().map((c) => (
+                      <td key={c.id} className="py-2 px-3">
+                        <span className={`text-lg font-black ${
+                          c.result.winProbability >= 65 ? "text-emerald-600" :
+                          c.result.winProbability >= 40 ? "text-amber-600" : "text-red-600"
+                        }`}>
+                          %{c.result.winProbability}
+                        </span>
+                      </td>
+                    ))}
+                  </tr>
+                  <tr className="border-b border-slate-100">
+                    <td className="py-2 px-3 text-slate-500">Tavsiye</td>
+                    {getComparedCases().map((c) => (
+                      <td key={c.id} className="py-2 px-3">
+                        <Badge variant={
+                          c.result.recommendation === "file_case" ? "success" :
+                          c.result.recommendation === "needs_review" ? "warning" : "danger"
+                        }>
+                          {c.result.recommendation === "file_case" ? "Dava Aç" :
+                           c.result.recommendation === "needs_review" ? "İncele" : "Açma"}
+                        </Badge>
+                      </td>
+                    ))}
+                  </tr>
+                  <tr className="border-b border-slate-100">
+                    <td className="py-2 px-3 text-slate-500">Güçlü Yanlar</td>
+                    {getComparedCases().map((c) => (
+                      <td key={c.id} className="py-2 px-3 text-xs text-slate-600">
+                        {c.result.strengths.length} madde
+                      </td>
+                    ))}
+                  </tr>
+                  <tr className="border-b border-slate-100">
+                    <td className="py-2 px-3 text-slate-500">Zayıf Yanlar</td>
+                    {getComparedCases().map((c) => (
+                      <td key={c.id} className="py-2 px-3 text-xs text-slate-600">
+                        {c.result.weaknesses.length} madde
+                      </td>
+                    ))}
+                  </tr>
+                  <tr className="border-b border-slate-100">
+                    <td className="py-2 px-3 text-slate-500">AI Sağlayıcı</td>
+                    {getComparedCases().map((c) => (
+                      <td key={c.id} className="py-2 px-3">
+                        <Badge variant={c.aiProvider === "claude" ? "default" : "outline"}>
+                          {c.aiProvider === "claude" ? "Claude AI" : "Yerel AI"}
+                        </Badge>
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3 text-slate-500">Tarih</td>
+                    {getComparedCases().map((c) => (
+                      <td key={c.id} className="py-2 px-3 text-xs text-slate-500">
+                        {new Date(c.createdAt).toLocaleDateString("tr-TR")}
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        )}
+
+        {compareMode && selectedForCompare.length < 2 && (
+          <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
+            Karşılaştırmak için en az 2, en fazla 3 analiz seçin. ({selectedForCompare.length}/3 seçildi)
+          </div>
+        )}
 
         {cases.length === 0 ? (
           <motion.div
@@ -139,7 +276,14 @@ export default function HistoryPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Card className="hover:shadow-lg transition-shadow">
+                <Card
+                  className={`hover:shadow-lg transition-shadow cursor-pointer ${
+                    compareMode && selectedForCompare.includes(c.id)
+                      ? "ring-2 ring-blue-500 border-blue-300"
+                      : ""
+                  }`}
+                  onClick={() => compareMode && toggleCompareSelect(c.id)}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">

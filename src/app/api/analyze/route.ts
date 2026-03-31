@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { analyzeCase } from "@/lib/analysis-engine";
 import { analyzeCaseWithClaude } from "@/lib/claude-analyzer";
 import { searchUyapPrecedents, getCategoryKeywords } from "@/lib/uyap-client";
+import { checkRateLimit } from "@/lib/rate-limiter";
 import type { CaseCategory } from "@/types/database";
 import type { UyapDecision } from "@/lib/uyap-client";
 
@@ -47,8 +48,60 @@ async function extractSearchKeywordsWithAI(
   }
 }
 
+/**
+ * AI ile UYAP sonuçlarını filtreleyip en alakalı olanları seç.
+ */
+async function filterUyapWithAI(
+  decisions: UyapDecision[],
+  eventSummary: string,
+  category: string
+): Promise<UyapDecision[]> {
+  if (decisions.length <= 3) return decisions;
+  try {
+    const client = new Anthropic();
+    const summaries = decisions.map((d, i) =>
+      `[${i}] ${d.mahkeme} | ${d.esas_no} | ${(d.ozet || d.metin || "").substring(0, 200)}`
+    ).join("\n");
+
+    const response = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 100,
+      system: "Verilen UYAP emsal kararları arasından olaya en uygun olanların indeks numaralarını seç. SADECE JSON array döndür. Örnek: [0, 2, 5]",
+      messages: [{
+        role: "user",
+        content: `Olay: ${eventSummary.substring(0, 300)}\nKategori: ${category}\n\nKararlar:\n${summaries}`,
+      }],
+    });
+
+    let text = "";
+    for (const block of response.content) {
+      if (block.type === "text") text += block.text;
+    }
+    text = text.trim().replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    const indices: number[] = JSON.parse(text);
+    const filtered = indices
+      .filter((i) => i >= 0 && i < decisions.length)
+      .map((i) => decisions[i]);
+    return filtered.length > 0 ? filtered : decisions.slice(0, 5);
+  } catch {
+    return decisions.slice(0, 5);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting kontrolü
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+      || request.headers.get("x-real-ip")
+      || "unknown";
+    const rateCheck = checkRateLimit(ip);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: `Çok fazla istek gönderdiniz. ${rateCheck.retryAfter} saniye sonra tekrar deneyin.` },
+        { status: 429, headers: { "Retry-After": String(rateCheck.retryAfter || 60) } }
+      );
+    }
+
     const body = await request.json();
     const { eventSummary, category, additionalNotes } = body;
 
@@ -123,6 +176,11 @@ export async function POST(request: NextRequest) {
 
     // En fazla 10 sonuç tut
     uyapDecisions = uyapDecisions.slice(0, 10);
+
+    // 2.5. AI ile UYAP sonuçlarını filtrele - en alakalı olanları seç
+    if (hasClaudeKey && uyapDecisions.length > 3) {
+      uyapDecisions = await filterUyapWithAI(uyapDecisions, eventSummary, category);
+    }
 
     // 3. Claude AI ile analiz (API key varsa)
     let analysisResult;

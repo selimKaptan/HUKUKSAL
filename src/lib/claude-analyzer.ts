@@ -147,7 +147,41 @@ Yanıtını SADECE geçerli JSON olarak ver, başka metin ekleme.`;
   }
   jsonText = jsonText.trim();
 
-  const analysis = JSON.parse(jsonText);
+  // Güvenli JSON parse - AI bazen bozuk JSON döndürebilir
+  let analysis;
+  try {
+    analysis = JSON.parse(jsonText);
+  } catch (parseError) {
+    console.error("Claude JSON parse error, attempting repair:", parseError);
+    // JSON'u onarmayı dene - yaygın hatalar
+    try {
+      // Trailing comma kaldır
+      const repaired = jsonText
+        .replace(/,\s*}/g, "}")
+        .replace(/,\s*]/g, "]")
+        // Tek tırnak -> çift tırnak
+        .replace(/'/g, '"')
+        // Kontrol karakterlerini temizle
+        .replace(/[\x00-\x1F\x7F]/g, (c) => c === "\n" || c === "\t" ? c : "");
+      analysis = JSON.parse(repaired);
+    } catch {
+      // Hala parse edilemiyorsa, regex ile temel alanları çıkar
+      console.error("JSON repair failed, extracting fields manually");
+      const winMatch = jsonText.match(/"winProbability"\s*:\s*(\d+)/);
+      const recMatch = jsonText.match(/"recommendation"\s*:\s*"([^"]+)"/);
+      analysis = {
+        winProbability: winMatch ? parseInt(winMatch[1]) : 50,
+        strengths: ["AI analizi tamamlandı ancak detaylı sonuçlar ayrıştırılamadı."],
+        weaknesses: ["Analiz sonuçları tam olarak işlenemedi, yeniden deneyiniz."],
+        recommendation: recMatch ? recMatch[1] : "needs_review",
+        analysisReport: jsonText.substring(0, 1000),
+        riskFactors: [],
+        suggestedActions: ["Analizi tekrar çalıştırın.", "Olay özetini daha detaylı yazın.", "Bir avukata danışın."],
+        selectedPrecedentIndices: [],
+        precedentScores: [],
+      };
+    }
+  }
 
   // AI'ın seçtiği emsal kararları kullan
   const selectedIndices: number[] = analysis.selectedPrecedentIndices || [];

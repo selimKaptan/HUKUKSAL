@@ -30,6 +30,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [streamStatus, setStreamStatus] = useState<string>("");
   const [formData, setFormData] = useState<FormData>({
     title: "",
     category: "",
@@ -45,20 +46,86 @@ export default function DashboardPage() {
 
   const handleSubmit = async () => {
     setIsAnalyzing(true);
+    setStreamStatus("Analiz başlatılıyor...");
     try {
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventSummary: formData.eventSummary,
-          category: formData.category,
-          additionalNotes: formData.additionalNotes,
-        }),
-      });
+      // Streaming endpoint'i dene, başarısız olursa normal endpoint'e düş
+      let result;
+      try {
+        result = await new Promise((resolve, reject) => {
+          const payload = JSON.stringify({
+            eventSummary: formData.eventSummary,
+            category: formData.category,
+            additionalNotes: formData.additionalNotes,
+          });
 
-      if (!response.ok) throw new Error("Analysis failed");
+          fetch("/api/analyze-stream", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+          }).then((res) => {
+            if (!res.ok || !res.body) {
+              reject(new Error("Stream failed"));
+              return;
+            }
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
 
-      const result = await response.json();
+            function read(): Promise<void> {
+              return reader.read().then(({ done, value }) => {
+                if (done) {
+                  reject(new Error("Stream ended without result"));
+                  return;
+                }
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                buffer = lines.pop() || "";
+
+                for (const line of lines) {
+                  if (line.startsWith("event: ")) {
+                    const eventType = line.slice(7);
+                    const dataLine = lines[lines.indexOf(line) + 1];
+                    if (dataLine?.startsWith("data: ")) {
+                      try {
+                        const data = JSON.parse(dataLine.slice(6));
+                        if (eventType === "step") {
+                          setStreamStatus(data.message);
+                        } else if (eventType === "keywords") {
+                          setStreamStatus(`Arama: ${data.keywords.join(", ")}`);
+                        } else if (eventType === "uyap") {
+                          setStreamStatus(`${data.count} UYAP emsal bulundu`);
+                        } else if (eventType === "result") {
+                          resolve(data);
+                          return;
+                        } else if (eventType === "error") {
+                          reject(new Error(data.message));
+                          return;
+                        }
+                      } catch { /* parse error, continue */ }
+                    }
+                  }
+                }
+                return read();
+              });
+            }
+            read().catch(reject);
+          }).catch(reject);
+        });
+      } catch {
+        // Streaming başarısız, normal endpoint
+        setStreamStatus("Analiz yapılıyor...");
+        const response = await fetch("/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventSummary: formData.eventSummary,
+            category: formData.category,
+            additionalNotes: formData.additionalNotes,
+          }),
+        });
+        if (!response.ok) throw new Error("Analysis failed");
+        result = await response.json();
+      }
 
       // Save to user history if logged in
       if (user) {
@@ -185,7 +252,7 @@ export default function DashboardPage() {
                   Davanız Analiz Ediliyor
                 </h3>
                 <p className="text-slate-500">
-                  Emsal kararlar taranıyor, hukuki analiz yapılıyor...
+                  {streamStatus || "Emsal kararlar taranıyor, hukuki analiz yapılıyor..."}
                 </p>
                 <div className="mt-6 flex justify-center gap-1">
                   {[0, 1, 2].map((i) => (

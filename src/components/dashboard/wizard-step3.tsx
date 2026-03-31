@@ -2,7 +2,8 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Upload, X, FileText, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Upload, X, FileText, Loader2, Sparkles, CheckCircle, AlertCircle } from "lucide-react";
 import { useState } from "react";
 
 interface Step3Props {
@@ -21,6 +22,10 @@ export function WizardStep3({
   isAnalyzing,
 }: Step3Props) {
   const [files, setFiles] = useState<File[]>([]);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractedText, setExtractedText] = useState<string | null>(null);
+  const [documentType, setDocumentType] = useState<string | null>(null);
+  const [extractError, setExtractError] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -31,6 +36,32 @@ export function WizardStep3({
 
   const removeFile = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleExtractText = async (file: File) => {
+    setIsExtracting(true);
+    setExtractError(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/extract-text", { method: "POST", body: formData });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Belge okunamadı");
+      }
+      const data = await res.json();
+      setExtractedText(data.extractedText);
+      setDocumentType(data.documentType);
+      // Ek notlara ekle
+      const currentNotes = additionalNotes ? additionalNotes + "\n\n" : "";
+      onUpdate({
+        additionalNotes: currentNotes + `[AI Belge Analizi - ${data.documentType}]\n${data.summary}\n\nÇıkarılan Metin:\n${data.extractedText.substring(0, 500)}`,
+      });
+    } catch (err) {
+      setExtractError(err instanceof Error ? err.message : "Belge okunamadı");
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   return (
@@ -88,17 +119,68 @@ export function WizardStep3({
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => removeFile(index)}
-                  className="p-1 hover:bg-slate-100 rounded-full transition-colors"
-                >
-                  <X className="w-4 h-4 text-slate-400" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {(file.type.startsWith("image/") || file.type === "application/pdf") && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleExtractText(file)}
+                      disabled={isExtracting}
+                      className="text-xs"
+                    >
+                      {isExtracting ? (
+                        <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                      ) : (
+                        <Sparkles className="w-3 h-3 mr-1" />
+                      )}
+                      AI ile Oku
+                    </Button>
+                  )}
+                  <button
+                    onClick={() => removeFile(index)}
+                    className="p-1 hover:bg-slate-100 rounded-full transition-colors"
+                  >
+                    <X className="w-4 h-4 text-slate-400" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* AI Belge Okuma Sonucu */}
+      {extractedText && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle className="w-4 h-4 text-emerald-600" />
+            <span className="text-sm font-semibold text-emerald-800">Belge Okundu</span>
+            {documentType && (
+              <Badge variant="outline" className="text-xs">{documentType}</Badge>
+            )}
+          </div>
+          <p className="text-xs text-emerald-700">
+            Çıkarılan metin ek notlara eklendi. Aşağıdan düzenleyebilirsiniz.
+          </p>
+        </motion.div>
+      )}
+
+      {extractError && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 bg-red-50 border border-red-200 rounded-xl"
+        >
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-600" />
+            <span className="text-sm text-red-800">{extractError}</span>
+          </div>
+        </motion.div>
+      )}
 
       {/* Additional notes */}
       <div className="space-y-2">
