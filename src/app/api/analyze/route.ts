@@ -3,7 +3,7 @@ import { analyzeCase } from "@/lib/analysis-engine";
 import { analyzeCaseWithClaude } from "@/lib/claude-analyzer";
 import type { CaseCategory } from "@/types/database";
 
-// Vercel timeout'u artır (Hobby: max 60s, Pro: max 300s)
+// Vercel timeout'u artır
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
@@ -25,13 +25,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Claude API ile analiz (API key varsa)
-    const hasClaudeKey = !!process.env.ANTHROPIC_API_KEY;
-    let analysisResult;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const hasClaudeKey = !!apiKey;
 
     if (hasClaudeKey) {
       try {
-        analysisResult = await analyzeCaseWithClaude(
+        const analysisResult = await analyzeCaseWithClaude(
           eventSummary,
           category as CaseCategory,
           additionalNotes
@@ -41,13 +40,33 @@ export async function POST(request: NextRequest) {
           ...analysisResult,
           aiProvider: "claude",
         });
-      } catch (error) {
-        console.error("Claude API error, falling back to local:", error);
+      } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        const errStack = error instanceof Error ? error.stack : "";
+        console.error("Claude API HATA:", errMsg, errStack);
+
+        // Yerel motora düş ama hatayı da gönder
+        const analysisResult = analyzeCase(
+          eventSummary,
+          category as CaseCategory,
+          additionalNotes
+        );
+
+        return NextResponse.json({
+          ...analysisResult,
+          aiProvider: "local",
+          claudeError: errMsg,
+          debugInfo: {
+            hasKey: true,
+            keyPrefix: apiKey?.substring(0, 10) + "...",
+            error: errMsg,
+          },
+        });
       }
     }
 
-    // Fallback: yerel analiz motoru
-    analysisResult = analyzeCase(
+    // API key yok
+    const analysisResult = analyzeCase(
       eventSummary,
       category as CaseCategory,
       additionalNotes
@@ -56,6 +75,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ...analysisResult,
       aiProvider: "local",
+      claudeError: "ANTHROPIC_API_KEY ortam degiskeni bulunamadi",
+      debugInfo: { hasKey: false },
     });
   } catch (error) {
     console.error("Analysis error:", error);
