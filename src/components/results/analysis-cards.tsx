@@ -12,7 +12,7 @@ export function StrengthsCard({ strengths }: { strengths: string[] }) {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
       <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-white">
-        <CardHeader><CardTitle className="flex items-center gap-2 text-emerald-700"><CheckCircle2 className="w-5 h-5" /> Guclu Yanlar</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2 text-emerald-700"><CheckCircle2 className="w-5 h-5" /> Güçlü Yanlar</CardTitle></CardHeader>
         <CardContent><ul className="space-y-3">{strengths.map((s, i) => (<li key={i} className="flex items-start gap-3"><TrendingUp className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" /><span className="text-sm text-slate-700">{s}</span></li>))}</ul></CardContent>
       </Card>
     </motion.div>
@@ -23,7 +23,7 @@ export function WeaknessesCard({ weaknesses }: { weaknesses: string[] }) {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
       <Card className="border-red-200 bg-gradient-to-br from-red-50 to-white">
-        <CardHeader><CardTitle className="flex items-center gap-2 text-red-700"><AlertTriangle className="w-5 h-5" /> Zayif Yanlar ve Riskler</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2 text-red-700"><AlertTriangle className="w-5 h-5" /> Zayıf Yanlar ve Riskler</CardTitle></CardHeader>
         <CardContent><ul className="space-y-3">{weaknesses.map((w, i) => (<li key={i} className="flex items-start gap-3"><TrendingDown className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" /><span className="text-sm text-slate-700">{w}</span></li>))}</ul></CardContent>
       </Card>
     </motion.div>
@@ -35,7 +35,7 @@ export function PrecedentCard({ precedent, index }: { precedent: Precedent & { r
   const [detail, setDetail] = useState<string | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  const outcomeLabel = precedent.outcome === "plaintiff_won" ? "Davaci Kazandi" : precedent.outcome === "defendant_won" ? "Davali Kazandi" : precedent.outcome === "settled" ? "Uzlasma" : "Reddedildi";
+  const outcomeLabel = precedent.outcome === "plaintiff_won" ? "Davacı Kazandı" : precedent.outcome === "defendant_won" ? "Davalı Kazandı" : precedent.outcome === "settled" ? "Uzlaşma" : "Reddedildi";
   const outcomeVariant = precedent.outcome === "plaintiff_won" ? "success" : precedent.outcome === "defendant_won" ? "danger" : "warning";
 
   const handleExpand = async () => {
@@ -51,8 +51,8 @@ export function PrecedentCard({ precedent, index }: { precedent: Precedent & { r
           }),
         });
         const data = await res.json();
-        setDetail(data.reply || "Detay alinamadi.");
-      } catch { setDetail("Baglanti hatasi."); }
+        setDetail(data.reply || "Detay alınamadı.");
+      } catch { setDetail("Bağlantı hatası."); }
       finally { setLoadingDetail(false); }
     }
   };
@@ -92,7 +92,7 @@ export function PrecedentCard({ precedent, index }: { precedent: Precedent & { r
             {expanded && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden" onClick={(e) => e.stopPropagation()}>
                 <div className="mt-3 p-4 bg-violet-50 border border-violet-200 rounded-xl">
-                  <div className="flex items-center gap-2 mb-3"><Sparkles className="w-4 h-4 text-violet-600" /><span className="text-sm font-bold text-violet-800">AI Detayli Analiz</span></div>
+                  <div className="flex items-center gap-2 mb-3"><Sparkles className="w-4 h-4 text-violet-600" /><span className="text-sm font-bold text-violet-800">AI Detaylı Analiz</span></div>
                   {loadingDetail ? (
                     <div className="flex items-center gap-2 text-sm text-violet-600 py-4 justify-center"><Loader2 className="w-4 h-4 animate-spin" /> Emsal karar analiz ediliyor...</div>
                   ) : detail ? (
@@ -100,14 +100,14 @@ export function PrecedentCard({ precedent, index }: { precedent: Precedent & { r
                       <Markdown>{detail}</Markdown>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 text-sm text-violet-600"><BookOpen className="w-4 h-4" /> Detay yuklenemedi.</div>
+                    <div className="flex items-center gap-2 text-sm text-violet-600"><BookOpen className="w-4 h-4" /> Detay yüklenemedi.</div>
                   )}
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {!expanded && <p className="text-[10px] text-blue-500 text-center pt-1">Detayli bilgi icin tiklayin</p>}
+          {!expanded && <p className="text-[10px] text-blue-500 text-center pt-1">Detaylı bilgi için tıklayın</p>}
         </CardContent>
       </Card>
     </motion.div>
@@ -123,18 +123,18 @@ export function RecommendationCard({ result }: { result: AnalysisResult }) {
         <CardHeader>
           <CardTitle className={`flex items-center gap-2 text-lg ${isPositive ? "text-emerald-800" : isNeutral ? "text-amber-800" : "text-red-800"}`}>
             <FileText className="w-5 h-5" />
-            {isPositive ? "Dava Acmaniz Tavsiye Edilir" : isNeutral ? "Avukat Degerlendirmesi Gereklidir" : "Dava Acmaniz Onerilmez"}
+            {isPositive ? "Dava Açmanız Tavsiye Edilir" : isNeutral ? "Avukat Değerlendirmesi Gereklidir" : "Dava Açmanız Önerilmez"}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div>
-              <h4 className="text-sm font-semibold text-slate-700 mb-2">Onerilen Adimlar:</h4>
+              <h4 className="text-sm font-semibold text-slate-700 mb-2">Önerilen Adımlar:</h4>
               <ul className="space-y-2">{result.suggestedActions.map((action, i) => (<li key={i} className="flex items-start gap-2 text-sm text-slate-600"><span className="font-bold text-blue-600">{i + 1}.</span> {action}</li>))}</ul>
             </div>
             {result.riskFactors.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-red-700 mb-2">Risk Faktorleri:</h4>
+                <h4 className="text-sm font-semibold text-red-700 mb-2">Risk Faktörleri:</h4>
                 <ul className="space-y-1">{result.riskFactors.map((risk, i) => (<li key={i} className="flex items-center gap-2 text-sm text-red-600"><AlertTriangle className="w-3 h-3" /> {risk}</li>))}</ul>
               </div>
             )}

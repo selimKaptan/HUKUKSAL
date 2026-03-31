@@ -33,7 +33,7 @@ export default function AdminPage() {
   }, [user, loading, router]);
 
   if (loading || !user || !isAdmin(user.email)) {
-    return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-slate-400">Yukleniyor...</div></div>;
+    return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-slate-400">Yükleniyor...</div></div>;
   }
 
   return (
@@ -56,16 +56,16 @@ export default function AdminPage() {
       </header>
 
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <h1 className="text-3xl font-black text-slate-900 mb-1">Hosgeldin, {user.name}</h1>
-        <p className="text-slate-500 mb-8">{user.email} - Sinirsiz erisim</p>
+        <h1 className="text-3xl font-black text-slate-900 mb-1">Hoşgeldin, {user.name}</h1>
+        <p className="text-slate-500 mb-8">{user.email} - Sınırsız erişim</p>
 
         {/* İstatistik Kartları */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { icon: Users, label: "Toplam Kullanici", value: userCount, color: "text-blue-600 bg-blue-50" },
-            { icon: Scale, label: "Kayitli Avukat", value: lawyerCount, color: "text-emerald-600 bg-emerald-50" },
+            { icon: Users, label: "Toplam Kullanıcı", value: userCount, color: "text-blue-600 bg-blue-50" },
+            { icon: Scale, label: "Kayıtlı Avukat", value: lawyerCount, color: "text-emerald-600 bg-emerald-50" },
             { icon: BarChart3, label: "Plan", value: "Admin", color: "text-violet-600 bg-violet-50" },
-            { icon: Activity, label: "Analiz Limiti", value: "Sinirsiz", color: "text-amber-600 bg-amber-50" },
+            { icon: Activity, label: "Analiz Limiti", value: "Sınırsız", color: "text-amber-600 bg-amber-50" },
           ].map((stat) => (
             <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <Card>
@@ -82,7 +82,7 @@ export default function AdminPage() {
         </div>
 
         {/* Hızlı Erişim */}
-        <h2 className="text-lg font-bold text-slate-900 mb-4">Hizli Erisim</h2>
+        <h2 className="text-lg font-bold text-slate-900 mb-4">Hızlı Erişim</h2>
         <div className="grid md:grid-cols-3 gap-4">
           <Link href="/dashboard">
             <Card className="hover:shadow-lg transition-all cursor-pointer">
@@ -90,7 +90,7 @@ export default function AdminPage() {
                 <Scale className="w-8 h-8 text-blue-500" />
                 <div>
                   <h3 className="font-bold text-slate-900">Dava Analizi</h3>
-                  <p className="text-xs text-slate-500">Sinirsiz analiz yap</p>
+                  <p className="text-xs text-slate-500">Sınırsız analiz yap</p>
                 </div>
               </CardContent>
             </Card>
@@ -100,7 +100,7 @@ export default function AdminPage() {
               <CardContent className="p-5 flex items-center gap-4">
                 <Database className="w-8 h-8 text-violet-500" />
                 <div>
-                  <h3 className="font-bold text-slate-900">AI Danismani</h3>
+                  <h3 className="font-bold text-slate-900">AI Danışmanı</h3>
                   <p className="text-xs text-slate-500">Hukuki soru sor</p>
                 </div>
               </CardContent>
@@ -111,8 +111,8 @@ export default function AdminPage() {
               <CardContent className="p-5 flex items-center gap-4">
                 <Settings className="w-8 h-8 text-slate-500" />
                 <div>
-                  <h3 className="font-bold text-slate-900">Analiz Gecmisi</h3>
-                  <p className="text-xs text-slate-500">Tum analizleri gor</p>
+                  <h3 className="font-bold text-slate-900">Analiz Geçmişi</h3>
+                  <p className="text-xs text-slate-500">Tüm analizleri gör</p>
                 </div>
               </CardContent>
             </Card>
@@ -120,7 +120,7 @@ export default function AdminPage() {
         </div>
 
         <div className="mt-8 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-          <strong>Admin Bilgi:</strong> Bu hesap ({user.email}) sinirsiz analiz hakkina sahiptir. Limit kontrolu uygulanmaz.
+          <strong>Admin Bilgi:</strong> Bu hesap ({user.email}) sınırsız analiz hakkına sahiptir. Limit kontrolü uygulanmaz.
         </div>
       </div>
     </div>

@@ -40,10 +40,8 @@ export async function POST(request: NextRequest) {
           ...analysisResult,
           aiProvider: "claude",
         });
-      } catch (error: unknown) {
-        const errMsg = error instanceof Error ? error.message : String(error);
-        const errStack = error instanceof Error ? error.stack : "";
-        console.error("Claude API HATA:", errMsg, errStack);
+      } catch (error) {
+        console.error("Claude API error:", error);
 
         // Yerel motora düş ama hatayı da gönder
         const analysisResult = analyzeCase(
@@ -55,12 +53,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           ...analysisResult,
           aiProvider: "local",
-          claudeError: errMsg,
-          debugInfo: {
-            hasKey: true,
-            keyPrefix: apiKey?.substring(0, 10) + "...",
-            error: errMsg,
-          },
         });
       }
     }
@@ -75,8 +67,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ...analysisResult,
       aiProvider: "local",
-      claudeError: "ANTHROPIC_API_KEY ortam degiskeni bulunamadi",
-      debugInfo: { hasKey: false },
     });
   } catch (error) {
     console.error("Analysis error:", error);

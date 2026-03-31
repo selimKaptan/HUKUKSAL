@@ -130,7 +130,7 @@ export default function DashboardPage() {
   };
 
   if (authLoading || !user) {
-    return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-pulse text-slate-400">Yukleniyor...</div></div>;
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-pulse text-slate-400">Yükleniyor...</div></div>;
   }
 
   return (
@@ -162,8 +162,8 @@ export default function DashboardPage() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             {/* Hoşgeldin */}
             <div className="mb-8">
-              <h1 className="text-3xl font-black text-slate-900 mb-1">Hosgeldin, {user.name || "Kullanici"}!</h1>
-              <p className="text-slate-500">Davanizi analiz edin, haklarinizi ogrenin.</p>
+              <h1 className="text-3xl font-black text-slate-900 mb-1">Hoşgeldin, {user.name || "Kullanıcı"}!</h1>
+              <p className="text-slate-500">Davanızı analiz edin, haklarınızı öğrenin.</p>
             </div>
 
             {/* Ana Aksiyon - Yeni Analiz */}
@@ -188,27 +188,27 @@ export default function DashboardPage() {
                 <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-blue-200 transition-all cursor-pointer group">
                   <History className="w-8 h-8 text-blue-500 mb-3 group-hover:scale-110 transition-transform" />
                   <h3 className="font-bold text-slate-900 mb-1">Dava Gecmisi</h3>
-                  <p className="text-xs text-slate-500">Onceki analizlerinizi goruntuleyin</p>
+                  <p className="text-xs text-slate-500">Önceki analizlerinizi görüntüleyin</p>
                 </div>
               </Link>
               <Link href="/tools/find-lawyer">
                 <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-emerald-200 transition-all cursor-pointer group">
                   <UserSearch className="w-8 h-8 text-emerald-500 mb-3 group-hover:scale-110 transition-transform" />
                   <h3 className="font-bold text-slate-900 mb-1">Avukat Bul</h3>
-                  <p className="text-xs text-slate-500">Uzman avukatlarla eslesin</p>
+                  <p className="text-xs text-slate-500">Uzman avukatlarla eşleşin</p>
                 </div>
               </Link>
               <Link href="/tools/mediation">
                 <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-amber-200 transition-all cursor-pointer group">
                   <Calculator className="w-8 h-8 text-amber-500 mb-3 group-hover:scale-110 transition-transform" />
                   <h3 className="font-bold text-slate-900 mb-1">Arabuluculuk</h3>
-                  <p className="text-xs text-slate-500">Maliyet karsilastirmasi yapin</p>
+                  <p className="text-xs text-slate-500">Maliyet karşılaştırması yapın</p>
                 </div>
               </Link>
               <Link href="/ask">
                 <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-violet-200 transition-all cursor-pointer group">
                   <MessageCircle className="w-8 h-8 text-violet-500 mb-3 group-hover:scale-110 transition-transform" />
-                  <h3 className="font-bold text-slate-900 mb-1">Hukuk Danismani</h3>
+                  <h3 className="font-bold text-slate-900 mb-1">Hukuk Danışmanı</h3>
                   <p className="text-xs text-slate-500">AI&apos;a soru sorun</p>
                 </div>
               </Link>
@@ -220,8 +220,8 @@ export default function DashboardPage() {
                 <div className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-all flex items-center gap-4 cursor-pointer">
                   <Clock className="w-6 h-6 text-slate-400" />
                   <div>
-                    <h3 className="font-semibold text-slate-900 text-sm">Zamanasimi Hesaplayici</h3>
-                    <p className="text-xs text-slate-500">Surelerinizi kontrol edin</p>
+                    <h3 className="font-semibold text-slate-900 text-sm">Zamanaşımı Hesaplayıcı</h3>
+                    <p className="text-xs text-slate-500">Sürelerinizi kontrol edin</p>
                   </div>
                   <ArrowRight className="w-4 h-4 text-slate-300 ml-auto" />
                 </div>
@@ -231,7 +231,7 @@ export default function DashboardPage() {
                   <CreditCard className="w-6 h-6 text-slate-400" />
                   <div>
                     <h3 className="font-semibold text-slate-900 text-sm">Planlar ve Fiyatlar</h3>
-                    <p className="text-xs text-slate-500">Pro plana yukseltin</p>
+                    <p className="text-xs text-slate-500">Pro plana yükseltin</p>
                   </div>
                   <ArrowRight className="w-4 h-4 text-slate-300 ml-auto" />
                 </div>
@@ -245,7 +245,7 @@ export default function DashboardPage() {
                   <Shield className="w-6 h-6" />
                   <div>
                     <h3 className="font-bold text-sm">Admin Panel</h3>
-                    <p className="text-xs text-red-100">Sinirsiz erisim - Yonetim paneli</p>
+                    <p className="text-xs text-red-100">Sınırsız erişim - Yönetim paneli</p>
                   </div>
                   <ArrowRight className="w-4 h-4 ml-auto" />
                 </div>
@@ -258,7 +258,7 @@ export default function DashboardPage() {
         {showWizard && (
           <div className="max-w-3xl mx-auto">
             <button onClick={() => { setShowWizard(false); setCurrentStep(0); }} className="text-sm text-slate-500 hover:text-slate-700 mb-6 flex items-center gap-1">
-              ← Panele Don
+              ← Panele Dön
             </button>
 
             {/* Progress Steps */}

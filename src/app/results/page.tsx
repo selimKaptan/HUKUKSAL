@@ -110,16 +110,6 @@ export default function ResultsPage() {
               </Badge>
             )}
           </div>
-          {result.claudeError && (
-            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
-              <strong>Claude AI hatasi:</strong> {result.claudeError}
-              {result.debugInfo && (
-                <span className="text-red-400 ml-2">
-                  (Key: {result.debugInfo.hasKey ? result.debugInfo.keyPrefix : "YOK"})
-                </span>
-              )}
-            </div>
-          )}
         </motion.div>
 
         {/* Gauge Chart - Main result */}
