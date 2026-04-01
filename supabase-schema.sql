@@ -103,7 +103,19 @@ CREATE TABLE public.precedents (
 );
 
 -- =============================================
--- 6. LAWYER_REVIEWS (Avukat değerlendirmeleri)
+-- 6. MESSAGES (Avukat-Müvekkil mesajlaşma)
+-- =============================================
+CREATE TABLE public.messages (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  sender_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  receiver_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  content TEXT NOT NULL,
+  read BOOLEAN DEFAULT FALSE
+);
+
+-- =============================================
+-- 7. LAWYER_REVIEWS (Avukat değerlendirmeleri)
 -- =============================================
 CREATE TABLE public.lawyer_reviews (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -129,6 +141,9 @@ CREATE INDEX idx_cases_status ON public.cases(status);
 CREATE INDEX idx_cases_created ON public.cases(created_at DESC);
 CREATE INDEX idx_evidences_case_id ON public.evidences(case_id);
 CREATE INDEX idx_precedents_category ON public.precedents(category);
+CREATE INDEX idx_messages_sender ON public.messages(sender_id);
+CREATE INDEX idx_messages_receiver ON public.messages(receiver_id);
+CREATE INDEX idx_messages_created ON public.messages(created_at DESC);
 CREATE INDEX idx_lawyer_reviews_lawyer ON public.lawyer_reviews(lawyer_id);
 
 -- =============================================
@@ -241,5 +256,14 @@ CREATE POLICY "Users can insert own evidences" ON public.evidences FOR INSERT
   WITH CHECK (EXISTS (SELECT 1 FROM public.cases WHERE cases.id = evidences.case_id AND cases.user_id = auth.uid()));
 
 -- Reviews: herkes okuyabilir, müvekkil yazabilir
+-- Messages: sadece katılımcılar görebilir ve gönderebilir
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own messages" ON public.messages FOR SELECT
+  USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+CREATE POLICY "Users can send messages" ON public.messages FOR INSERT
+  WITH CHECK (auth.uid() = sender_id);
+CREATE POLICY "Users can mark messages read" ON public.messages FOR UPDATE
+  USING (auth.uid() = receiver_id);
+
 CREATE POLICY "Reviews are viewable by everyone" ON public.lawyer_reviews FOR SELECT USING (true);
 CREATE POLICY "Clients can write reviews" ON public.lawyer_reviews FOR INSERT WITH CHECK (auth.uid() = client_id);

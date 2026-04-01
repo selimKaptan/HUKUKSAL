@@ -3,17 +3,12 @@
  * Supabase bağlıysa DB kullanır, yoksa localStorage fallback
  */
 
-import { supabase } from "./supabase";
+import { supabase, hasSupabase } from "./supabase";
 import type { CaseCategory } from "@/types/database";
-import type { User, LawyerProfile } from "./auth-context";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
-const hasSupabase = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
+import type { LawyerProfile } from "./auth-context";
 
 // =============================================
-// CASES - Dava kayıtları
+// CASES
 // =============================================
 
 export interface DBCase {
@@ -39,7 +34,7 @@ export interface DBCase {
 export async function saveCase(userId: string, data: Omit<DBCase, "id" | "created_at" | "status">): Promise<DBCase | null> {
   if (hasSupabase) {
     try {
-      const { data: row, error } = await db
+      const { data: row, error } = await supabase
         .from("cases")
         .insert({ ...data, user_id: userId, status: "completed" })
         .select()
@@ -65,12 +60,12 @@ export async function saveCase(userId: string, data: Omit<DBCase, "id" | "create
 export async function getCasesByUserId(userId: string): Promise<DBCase[]> {
   if (hasSupabase) {
     try {
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from("cases")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
-      if (!error && data) return data as DBCase[];
+      if (!error && data && data.length > 0) return data as DBCase[];
     } catch { /* fallback */ }
   }
 
@@ -81,8 +76,7 @@ export async function getCasesByUserId(userId: string): Promise<DBCase[]> {
 export async function deleteCaseDB(caseId: string): Promise<void> {
   if (hasSupabase) {
     try {
-      await db.from("cases").delete().eq("id", caseId);
-      return;
+      await supabase.from("cases").delete().eq("id", caseId);
     } catch { /* fallback */ }
   }
 
@@ -91,7 +85,7 @@ export async function deleteCaseDB(caseId: string): Promise<void> {
 }
 
 // =============================================
-// LAWYERS - Avukat listeleme
+// LAWYERS
 // =============================================
 
 export interface DBLawyer {
@@ -115,100 +109,97 @@ export interface DBLawyer {
 export async function getRegisteredLawyersDB(category?: CaseCategory, city?: string): Promise<DBLawyer[]> {
   if (hasSupabase) {
     try {
-      let query = db
+      let query = supabase
         .from("lawyer_profiles")
-        .select(`
-          id,
-          title,
-          bar_association,
-          city,
-          specialties,
-          experience,
-          phone,
-          about,
-          consultation_fee,
-          languages,
-          is_verified,
-          rating,
-          review_count,
-          profiles!inner(name, email)
-        `)
+        .select(`id, title, bar_association, city, specialties, experience, phone, about, consultation_fee, languages, is_verified, rating, review_count, profiles!inner(name, email)`)
         .order("rating", { ascending: false });
 
       if (city) query = query.eq("city", city);
       if (category) query = query.contains("specialties", [category]);
 
       const { data, error } = await query;
-      if (!error && data) {
+      if (!error && data && data.length > 0) {
         return data.map((row: Record<string, unknown>) => {
           const profile = row.profiles as Record<string, string>;
           return {
             id: row.id as string,
-            name: profile.name,
-            email: profile.email,
-            title: row.title as string,
-            bar_association: row.bar_association as string,
-            city: row.city as string,
-            specialties: row.specialties as string[],
-            experience: row.experience as number,
-            phone: row.phone as string,
-            about: row.about as string,
-            consultation_fee: row.consultation_fee as string,
-            languages: row.languages as string[],
-            is_verified: row.is_verified as boolean,
-            rating: row.rating as number,
-            review_count: row.review_count as number,
+            name: profile?.name || "",
+            email: profile?.email || "",
+            title: (row.title as string) || "Avukat",
+            bar_association: (row.bar_association as string) || "",
+            city: (row.city as string) || "",
+            specialties: (row.specialties as string[]) || [],
+            experience: (row.experience as number) || 0,
+            phone: (row.phone as string) || "",
+            about: (row.about as string) || "",
+            consultation_fee: (row.consultation_fee as string) || "",
+            languages: (row.languages as string[]) || ["Türkçe"],
+            is_verified: (row.is_verified as boolean) || false,
+            rating: (row.rating as number) || 0,
+            review_count: (row.review_count as number) || 0,
           };
         });
       }
     } catch { /* fallback */ }
   }
 
-  // localStorage fallback - mevcut registry'den oku
-  const registry: User[] = JSON.parse(localStorage.getItem("jg_lawyer_registry") || "[]");
-  return registry
-    .filter((u) => {
-      if (!u.lawyerProfile) return false;
-      if (category && !u.lawyerProfile.specialties.includes(category)) return false;
-      if (city && u.lawyerProfile.city !== city) return false;
-      return true;
-    })
-    .map((u) => ({
-      id: u.id,
-      name: u.name || "",
-      email: u.email,
-      title: u.lawyerProfile!.title,
-      bar_association: u.lawyerProfile!.barAssociation,
-      city: u.lawyerProfile!.city,
-      specialties: u.lawyerProfile!.specialties,
-      experience: u.lawyerProfile!.experience,
-      phone: u.lawyerProfile!.phone,
-      about: u.lawyerProfile!.about,
-      consultation_fee: u.lawyerProfile!.consultationFee,
-      languages: u.lawyerProfile!.languages,
-      is_verified: false,
-      rating: 0,
-      review_count: 0,
-    }));
+  return []; // localStorage fallback find-lawyer sayfasında zaten yapılıyor
 }
 
 export async function updateLawyerProfileDB(userId: string, profile: LawyerProfile): Promise<void> {
   if (hasSupabase) {
     try {
-      await db
-        .from("lawyer_profiles")
-        .update({
-          title: profile.title,
-          bar_association: profile.barAssociation,
-          city: profile.city,
-          specialties: profile.specialties,
-          experience: profile.experience,
-          phone: profile.phone,
-          about: profile.about,
-          consultation_fee: profile.consultationFee,
-          languages: profile.languages,
-        })
-        .eq("id", userId);
+      await supabase.from("lawyer_profiles").update({
+        title: profile.title,
+        bar_association: profile.barAssociation,
+        city: profile.city,
+        specialties: profile.specialties,
+        experience: profile.experience,
+        phone: profile.phone,
+        about: profile.about,
+        consultation_fee: profile.consultationFee,
+        languages: profile.languages,
+      }).eq("id", userId);
     } catch { /* ignore */ }
   }
+}
+
+// =============================================
+// MESSAGES
+// =============================================
+
+export interface DBMessage {
+  id: string;
+  created_at: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  read: boolean;
+}
+
+export async function saveMessageDB(senderId: string, receiverId: string, content: string): Promise<void> {
+  if (hasSupabase) {
+    try {
+      await supabase.from("messages").insert({
+        sender_id: senderId,
+        receiver_id: receiverId,
+        content,
+        read: false,
+      });
+    } catch { /* fallback to localStorage in messaging.ts */ }
+  }
+}
+
+export async function getMessagesDB(userId1: string, userId2: string): Promise<DBMessage[]> {
+  if (hasSupabase) {
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .or(`and(sender_id.eq.${userId1},receiver_id.eq.${userId2}),and(sender_id.eq.${userId2},receiver_id.eq.${userId1})`)
+        .order("created_at", { ascending: true });
+      if (!error && data) return data as DBMessage[];
+    } catch { /* fallback */ }
+  }
+  return [];
 }
