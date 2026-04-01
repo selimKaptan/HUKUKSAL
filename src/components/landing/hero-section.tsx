@@ -79,9 +79,9 @@ export function HeroSection() {
           className="mt-20 grid grid-cols-3 gap-8 max-w-2xl mx-auto"
         >
           {[
-            { value: "10K+", label: "Emsal Karar" },
-            { value: "%94", label: "Doğruluk Oranı" },
-            { value: "3 dk", label: "Analiz Süresi" },
+            { value: "5", label: "Mahkeme Kaynağı" },
+            { value: "7+", label: "Emsal Tarama" },
+            { value: "~10sn", label: "AI Analiz" },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
               <div className="text-3xl md:text-4xl font-black text-slate-900">{stat.value}</div>
