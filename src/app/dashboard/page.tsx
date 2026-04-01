@@ -3,17 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Scale, FileSearch, History, Calculator, Clock, UserSearch, CreditCard, ArrowRight, LogOut, MessageCircle, Shield, Mail, Gift } from "lucide-react";
+import { Scale, FileSearch, History, Calculator, Clock, UserSearch, CreditCard, ArrowRight, LogOut, MessageCircle, Shield, Mail, Gift, Zap, Loader2 } from "lucide-react";
+import { CASE_CATEGORY_LABELS } from "@/types/database";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ProgressSteps } from "@/components/ui/progress-steps";
-import { WizardStep1 } from "@/components/dashboard/wizard-step1";
-import { WizardStep2 } from "@/components/dashboard/wizard-step2";
 import { useAuth } from "@/lib/auth-context";
 import { saveCaseResult } from "@/lib/case-storage";
 import { saveCase } from "@/lib/db";
 import { canMakeAnalysis, incrementAnalysisUsage, isAdmin } from "@/lib/subscription";
-import { WizardStep3 } from "@/components/dashboard/wizard-step3";
 import type { CaseCategory } from "@/types/database";
 
 interface FormData {
@@ -25,13 +22,10 @@ interface FormData {
   additionalNotes: string;
 }
 
-const STEPS = ["Dava Bilgileri", "Olay Detayı", "Belgeler & Analiz"];
-
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: authLoading, signOut } = useAuth();
   const [showWizard, setShowWizard] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -276,95 +270,159 @@ export default function DashboardPage() {
           </motion.div>
         )}
 
-        {/* Wizard */}
+        {/* Tek Sayfa Analiz Formu */}
         {showWizard && (
           <div className="max-w-3xl mx-auto">
-            <button onClick={() => { setShowWizard(false); setCurrentStep(0); }} className="text-sm text-slate-500 hover:text-slate-700 mb-6 flex items-center gap-1">
+            <button onClick={() => setShowWizard(false)} className="text-sm text-slate-500 hover:text-slate-700 mb-6 flex items-center gap-1">
               ← Panele Dön
             </button>
 
-            {/* Progress Steps */}
-            <ProgressSteps steps={STEPS} currentStep={currentStep} />
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-6 md:p-8 space-y-6">
+              <div>
+                <h2 className="text-2xl font-black text-slate-900 mb-1">Davanızı Anlatın</h2>
+                <p className="text-sm text-slate-500">Tüm bilgileri doldurun, AI analiz etsin.</p>
+              </div>
 
-        {/* Wizard Content */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 p-8 md:p-10">
-          <AnimatePresence mode="wait">
-            {currentStep === 0 && (
-              <WizardStep1
-                key="step1"
-                title={formData.title}
-                category={formData.category}
-                onUpdate={updateForm}
-                onNext={() => setCurrentStep(1)}
-              />
-            )}
-            {currentStep === 1 && (
-              <WizardStep2
-                key="step2"
-                eventSummary={formData.eventSummary}
-                eventDate={formData.eventDate}
-                opposingParty={formData.opposingParty}
-                category={formData.category}
-                onUpdate={updateForm}
-                onNext={() => setCurrentStep(2)}
-                onBack={() => setCurrentStep(0)}
-              />
-            )}
-            {currentStep === 2 && (
-              <WizardStep3
-                key="step3"
-                additionalNotes={formData.additionalNotes}
-                onUpdate={updateForm}
-                onBack={() => setCurrentStep(1)}
-                onSubmit={handleSubmit}
-                isAnalyzing={isAnalyzing}
-              />
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Loading overlay */}
-        <AnimatePresence>
-          {isAnalyzing && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-white/80 backdrop-blur-sm flex items-center justify-center"
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="text-center"
-              >
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-300 animate-pulse">
-                  <Scale className="w-10 h-10 text-white" />
+              {/* Başlık + Kategori */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700">Dava Başlığı *</label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => updateForm({ title: e.target.value })}
+                    placeholder="Örn: İşten haksız çıkarılma"
+                    className="w-full h-11 px-4 rounded-xl border-2 border-slate-200 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none"
+                  />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">
-                  Davanız Analiz Ediliyor
-                </h3>
-                <p className="text-slate-500">
-                  Emsal kararlar taranıyor, hukuki analiz yapılıyor...
-                </p>
-                <div className="mt-6 flex justify-center gap-1">
-                  {[0, 1, 2].map((i) => (
-                    <motion.div
-                      key={i}
-                      className="w-3 h-3 bg-blue-600 rounded-full"
-                      animate={{ y: [0, -10, 0] }}
-                      transition={{
-                        duration: 0.6,
-                        delay: i * 0.15,
-                        repeat: Infinity,
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700">Kategori *</label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => updateForm({ category: e.target.value as import("@/types/database").CaseCategory })}
+                    className="w-full h-11 px-4 rounded-xl border-2 border-slate-200 text-sm focus:border-blue-500 outline-none"
+                  >
+                    <option value="">Seçin</option>
+                    {Object.entries(CASE_CATEGORY_LABELS).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Olay Özeti */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold text-slate-700">Olayınızı Anlatın *</label>
+                  {formData.eventSummary.length >= 20 && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const res = await fetch("/api/improve-text", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ text: formData.eventSummary, category: formData.category }),
+                        });
+                        const data = await res.json();
+                        if (data.improvedText && confirm("AI düzenleme önerisi:\n\n" + data.improvedText.substring(0, 300) + "...\n\nKabul ediyor musunuz?")) {
+                          updateForm({ eventSummary: data.improvedText });
+                        }
                       }}
-                    />
-                  ))}
+                      className="text-xs text-violet-600 hover:text-violet-700 font-medium flex items-center gap-1"
+                    >
+                      ✨ AI ile İyileştir
+                    </button>
+                  )}
                 </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                <textarea
+                  value={formData.eventSummary}
+                  onChange={(e) => updateForm({ eventSummary: e.target.value })}
+                  placeholder="Ne oldu? Ne zaman oldu? Kim tarafından yapıldı? Hangi kanıtlarınız var? Mümkün olduğunca detaylı yazın."
+                  rows={5}
+                  className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none resize-none"
+                />
+                <div className="flex justify-between text-xs text-slate-400">
+                  <span>{formData.eventSummary.length < 20 ? `En az 20 karakter (${formData.eventSummary.length}/20)` : "✓ Yeterli"}</span>
+                  <span>{formData.eventSummary.length} karakter</span>
+                </div>
+              </div>
 
+              {/* Tarih + Karşı Taraf + Ek Not */}
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700">Olay Tarihi</label>
+                  <input
+                    type="date"
+                    value={formData.eventDate}
+                    onChange={(e) => updateForm({ eventDate: e.target.value })}
+                    className="w-full h-11 px-4 rounded-xl border-2 border-slate-200 text-sm focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700">Karşı Taraf</label>
+                  <input
+                    type="text"
+                    value={formData.opposingParty}
+                    onChange={(e) => updateForm({ opposingParty: e.target.value })}
+                    placeholder="Kişi veya kurum"
+                    className="w-full h-11 px-4 rounded-xl border-2 border-slate-200 text-sm focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700">Ek Notlar</label>
+                  <input
+                    type="text"
+                    value={formData.additionalNotes}
+                    onChange={(e) => updateForm({ additionalNotes: e.target.value })}
+                    placeholder="Tanık, belge bilgisi vs."
+                    className="w-full h-11 px-4 rounded-xl border-2 border-slate-200 text-sm focus:border-blue-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Analiz Butonu */}
+              <Button
+                onClick={handleSubmit}
+                disabled={isAnalyzing || formData.title.length < 3 || !formData.category || formData.eventSummary.length < 20}
+                size="lg"
+                className="w-full h-13 text-base"
+              >
+                {isAnalyzing ? (
+                  <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Analiz Ediliyor...</>
+                ) : (
+                  <><Zap className="w-5 h-5 mr-2" /> Analizi Başlat</>
+                )}
+              </Button>
+
+              <p className="text-[10px] text-slate-400 text-center">
+                AI ile emsal kararlar taranacak, kazanma olasılığı hesaplanacak.
+              </p>
+            </div>
+
+            {/* Loading overlay */}
+            <AnimatePresence>
+              {isAnalyzing && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 bg-white/80 backdrop-blur-sm flex items-center justify-center"
+                >
+                  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center">
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-300 animate-pulse">
+                      <Scale className="w-10 h-10 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-2">Davanız Analiz Ediliyor</h3>
+                    <p className="text-slate-500">Emsal kararlar taranıyor, hukuki analiz yapılıyor...</p>
+                    <div className="mt-6 flex justify-center gap-1">
+                      {[0, 1, 2].map((i) => (
+                        <motion.div key={i} className="w-3 h-3 bg-blue-600 rounded-full" animate={{ y: [0, -10, 0] }} transition={{ duration: 0.6, delay: i * 0.15, repeat: Infinity }} />
+                      ))}
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
 
