@@ -160,7 +160,7 @@ export default function DashboardPage() {
             {/* Hoşgeldin */}
             <div className="mb-8">
               <h1 className="text-3xl font-black text-slate-900 mb-1">Hoşgeldin, {user.name || "Kullanıcı"}!</h1>
-              <p className="text-slate-500">Davanızı analiz edin, haklarınızı öğrenin.</p>
+              <p className="text-slate-500">Haklarınızı öğrenin, ne yapmanız gerektiğini bilin.</p>
             </div>
 
             {/* Ana Aksiyon - Yeni Analiz */}
@@ -170,8 +170,8 @@ export default function DashboardPage() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-2">Yeni Dava Analizi Baslat</h2>
-                  <p className="text-blue-100">Olayinizi anlatin, yapay zeka kazanma ihtimalinizi hesaplasin.</p>
+                  <h2 className="text-2xl font-bold text-white mb-2">Sorununuzu Anlatın, Haklarınızı Öğrenin</h2>
+                  <p className="text-blue-100">Ne olduğunu anlatın, yapay zeka size ne yapmanız gerektiğini söylesin.</p>
                 </div>
                 <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                   <FileSearch className="w-7 h-7 text-white" />
@@ -184,7 +184,7 @@ export default function DashboardPage() {
               <Link href="/history">
                 <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-blue-200 transition-all cursor-pointer group">
                   <History className="w-8 h-8 text-blue-500 mb-3 group-hover:scale-110 transition-transform" />
-                  <h3 className="font-bold text-slate-900 mb-1">Dava Gecmisi</h3>
+                  <h3 className="font-bold text-slate-900 mb-1">Geçmiş Sorgularım</h3>
                   <p className="text-xs text-slate-500">Önceki analizlerinizi görüntüleyin</p>
                 </div>
               </Link>
@@ -192,21 +192,21 @@ export default function DashboardPage() {
                 <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-emerald-200 transition-all cursor-pointer group">
                   <UserSearch className="w-8 h-8 text-emerald-500 mb-3 group-hover:scale-110 transition-transform" />
                   <h3 className="font-bold text-slate-900 mb-1">Avukat Bul</h3>
-                  <p className="text-xs text-slate-500">Uzman avukatlarla eşleşin</p>
+                  <p className="text-xs text-slate-500">Size uygun uzman avukat bulun</p>
                 </div>
               </Link>
               <Link href="/tools/mediation">
                 <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-amber-200 transition-all cursor-pointer group">
                   <Calculator className="w-8 h-8 text-amber-500 mb-3 group-hover:scale-110 transition-transform" />
                   <h3 className="font-bold text-slate-900 mb-1">Arabuluculuk</h3>
-                  <p className="text-xs text-slate-500">Maliyet karşılaştırması yapın</p>
+                  <p className="text-xs text-slate-500">Dava mı arabuluculuk mu?</p>
                 </div>
               </Link>
               <Link href="/ask">
                 <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-violet-200 transition-all cursor-pointer group">
                   <MessageCircle className="w-8 h-8 text-violet-500 mb-3 group-hover:scale-110 transition-transform" />
-                  <h3 className="font-bold text-slate-900 mb-1">Hukuk Danışmanı</h3>
-                  <p className="text-xs text-slate-500">AI&apos;a soru sorun</p>
+                  <h3 className="font-bold text-slate-900 mb-1">Soru Sorun</h3>
+                  <p className="text-xs text-slate-500">Ne yapmalıyım? diye sorun</p>
                 </div>
               </Link>
             </div>
@@ -250,8 +250,8 @@ export default function DashboardPage() {
               <div className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl p-4 flex items-center gap-4 text-white hover:shadow-lg transition-all">
                 <Gift className="w-6 h-6" />
                 <div>
-                  <h3 className="font-bold text-sm">Arkadaşını Davet Et</h3>
-                  <p className="text-xs text-amber-100">Her davet = +1 ücretsiz analiz</p>
+                  <h3 className="font-bold text-sm">Arkadaşına Yardım Et</h3>
+                  <p className="text-xs text-amber-100">Paylaş, haklarını öğrensin</p>
                 </div>
                 <ArrowRight className="w-4 h-4 ml-auto" />
               </div>
