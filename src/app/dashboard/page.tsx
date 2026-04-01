@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Scale, FileSearch, History, Calculator, Clock, UserSearch, CreditCard, ArrowRight, LogOut, MessageCircle, Shield, Mail, Gift } from "lucide-react";
+import { Scale, FileSearch, History, Calculator, Clock, UserSearch, CreditCard, ArrowRight, LogOut, MessageCircle, Shield, Mail, Gift, Settings } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AnalysisForm } from "@/components/dashboard/analysis-form";
@@ -66,6 +66,8 @@ export default function DashboardPage() {
           eventSummary: formData.eventSummary,
           category: formData.category,
           additionalNotes: formData.additionalNotes,
+          userId: user?.id,
+          userEmail: user?.email,
         }),
       });
 
@@ -142,6 +144,7 @@ export default function DashboardPage() {
           </Link>
           <div className="flex items-center gap-2">
             <span className="text-sm text-slate-500 hidden sm:block">{user.name || user.email}</span>
+            <Link href="/settings"><button className="p-2 hover:bg-slate-100 rounded-lg transition-colors"><Settings className="w-4 h-4 text-slate-500" /></button></Link>
             <Button variant="ghost" size="sm" onClick={() => { signOut(); router.push("/"); }}>
               <LogOut className="w-4 h-4" />
             </Button>
