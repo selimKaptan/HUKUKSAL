@@ -92,6 +92,10 @@ export default function LoginPage() {
               </div>
             </div>
 
+            <div className="flex justify-end">
+              <Link href="/auth/forgot-password" className="text-xs text-blue-600 hover:underline">Şifremi Unuttum</Link>
+            </div>
+
             <Button type="submit" size="lg" className="w-full" disabled={loading}>
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
