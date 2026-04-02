@@ -24,10 +24,11 @@ export interface FeeCalculation {
   notes: string[];
 }
 
-// 2024-2025 Maktu Harç Tutarları (492 sayılı Harçlar Kanunu)
-const BASVURMA_HARCI_MAKTU = 427.6; // 2025 yılı
-const KARAR_ILAM_HARCI_MAKTU = 427.6; // Maktu karar harcı (nispi hesaplanamadığında)
-const VEKALET_HARCI = 70.1; // 2025 yılı vekâletname sureti harcı
+// 2026 Maktu Harç Tutarları (492 sayılı Harçlar Kanunu - Ocak 2026 güncellemesi)
+// Kaynak: Resmi Gazete (yeniden değerleme oranı %58.46 - 2025→2026)
+const BASVURMA_HARCI_MAKTU = 677.6; // 2026 yılı (427.6 * 1.5846)
+const KARAR_ILAM_HARCI_MAKTU = 677.6; // Maktu karar harcı
+const VEKALET_HARCI = 111.1; // 2026 yılı vekâletname sureti harcı
 const TEMYIZ_HARCI_MAKTU = 1312.0; // 2025 yılı temyiz başvurma harcı
 const ISTINAF_HARCI_MAKTU = 1312.0; // 2025 yılı istinaf başvurma harcı
 const NISPI_KARAR_ILAM_ORANI = 0.06831; // %6.831 nispi karar ve ilam harcı (binde 68.31)

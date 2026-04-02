@@ -1,5 +1,11 @@
 import { Precedent } from "@/types/database";
 
+/**
+ * UYARI: Bu veriler örnek/eğitim amaçlıdır.
+ * Gerçek emsal kararlar UYAP API'sinden (emsal.uyap.gov.tr) çekilir.
+ * Bu veritabanı sadece UYAP erişilemediğinde fallback olarak kullanılır.
+ * Gerçek dava kararları için her zaman UYAP sonuçları önceliklidir.
+ */
 export const PRECEDENTS_DB: Omit<Precedent, "id" | "created_at" | "relevance_score">[] = [
   // İŞ HUKUKU
   {
