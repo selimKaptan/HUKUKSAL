@@ -12,7 +12,7 @@ import { useAuth } from "@/lib/auth-context";
 import { saveCaseResult } from "@/lib/case-storage";
 import { saveCase } from "@/lib/db";
 import { WizardStep3 } from "@/components/dashboard/wizard-step3";
-import { LoginWall, LimitWall, ProBadge } from "@/components/paywall";
+import { LimitWall, ProBadge } from "@/components/paywall";
 import { getUserPlan, canDoAnalysis, incrementAnalysisCount } from "@/lib/feature-gate";
 import { getTodaysTip, updateStreak } from "@/lib/daily-tips";
 import type { CaseCategory } from "@/types/database";
@@ -42,7 +42,6 @@ export default function DashboardPage() {
     opposingParty: "",
     additionalNotes: "",
   });
-  const [showLoginWall, setShowLoginWall] = useState(false);
   const [showLimitWall, setShowLimitWall] = useState(false);
   const [streak, setStreak] = useState({ currentStreak: 0, totalVisits: 0, longestStreak: 0, lastVisitDate: "" });
   const tip = getTodaysTip();
@@ -73,11 +72,7 @@ export default function DashboardPage() {
     // Analiz limiti kontrolü
     const status = canDoAnalysis(plan);
     if (!status.allowed) {
-      if (plan === "guest") {
-        setShowLoginWall(true);
-      } else {
-        setShowLimitWall(true);
-      }
+      setShowLimitWall(true);
       return;
     }
 
@@ -269,7 +264,7 @@ export default function DashboardPage() {
           </motion.div>
         </div>
 
-        {/* Guest banner */}
+        {/* Login bilgilendirme */}
         {!user && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -277,12 +272,12 @@ export default function DashboardPage() {
             className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6 flex items-center justify-between"
           >
             <div>
-              <p className="text-sm font-semibold text-blue-900">Misafir olarak 1 ücretsiz analiz hakkınız var</p>
-              <p className="text-xs text-blue-600">Üye olun, aylık 3 analiz + tüm özellikler açılsın</p>
+              <p className="text-sm font-semibold text-blue-900">Aylık 3 ücretsiz analiz hakkınız var</p>
+              <p className="text-xs text-blue-600">Giriş yapın, analiz geçmişiniz kaydedilsin</p>
             </div>
-            <Link href="/auth/register">
+            <Link href="/auth/login">
               <button className="text-xs bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 flex items-center gap-1">
-                Üye Ol <ChevronRight className="w-3 h-3" />
+                Giriş Yap <ChevronRight className="w-3 h-3" />
               </button>
             </Link>
           </motion.div>
@@ -392,8 +387,7 @@ export default function DashboardPage() {
         </AnimatePresence>
       </div>
 
-      {/* Paywall modals */}
-      <LoginWall show={showLoginWall} onClose={() => setShowLoginWall(false)} feature="Daha fazla analiz yapmak için" />
+      {/* Paywall modal */}
       <LimitWall show={showLimitWall} onClose={() => setShowLimitWall(false)} limitType="analiz" resetInfo="ay başında" />
     </div>
   );
