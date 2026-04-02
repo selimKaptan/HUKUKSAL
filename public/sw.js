@@ -1,4 +1,4 @@
-const CACHE_NAME = "haklarim-v2";
+const CACHE_NAME = "haklarim-v3";
 const OFFLINE_URL = "/offline";
 
 const PRECACHE_URLS = [
@@ -6,6 +6,11 @@ const PRECACHE_URLS = [
   "/dashboard",
   "/offline",
   "/manifest.json",
+  "/pricing",
+  "/tools/glossary",
+  "/tools/mediation",
+  "/tools/statute-of-limitations",
+  "/tools/court-fees",
 ];
 
 // Install - precache critical resources
