@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Scale, Send, Mic, X, Crown, ChevronRight,
   EyeOff, User, Sparkles, Search, Copy, Check,
-  UserSearch, Share2, BookOpen,
+  UserSearch, Share2, BookOpen, Camera,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
@@ -52,8 +52,10 @@ export default function AppChat() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [shareToast, setShareToast] = useState("");
   const [milestoneToast, setMilestoneToast] = useState("");
+  const [scanningDoc, setScanningDoc] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const todaysCase = getTodaysCase();
@@ -112,6 +114,49 @@ export default function AppChat() {
     setCurrentChatId(chat.id);
     setMode(chat.mode === "incognito" ? "lawyer" : chat.mode);
     setShowHistory(false);
+  };
+
+  // Belge tarama (kamera / dosya)
+  const handleDocScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (plan !== "pro") { setShowProPage(true); return; }
+
+    setScanningDoc(true);
+    setMessages((prev) => [...prev, { id: `u_doc_${Date.now()}`, role: "user", content: `📄 Belge yüklendi: ${file.name}` }]);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/extract-text", { method: "POST", body: formData });
+      if (!response.ok) throw new Error("Hata");
+      const data = await response.json();
+
+      const docAnalysis = [
+        `📋 **Belge Türü:** ${data.documentType}`,
+        "",
+        `**Özet:** ${data.summary}`,
+        "",
+        data.keyPoints?.length ? `**Önemli Noktalar:**\n${data.keyPoints.map((p: string) => `  • ${p}`).join("\n")}` : "",
+        "",
+        data.extractedText ? `Bu belge hakkında soru sormak isterseniz yazabilirsiniz.` : "",
+      ].filter(Boolean).join("\n");
+
+      setMessages((prev) => [...prev, { id: `a_doc_${Date.now()}`, role: "assistant", content: docAnalysis }]);
+
+      // Belge metnini context olarak tut
+      if (data.extractedText) {
+        setInput(`Bu belge hakkında: `);
+        inputRef.current?.focus();
+      }
+    } catch {
+      setMessages((prev) => [...prev, { id: `e_doc_${Date.now()}`, role: "assistant", content: "Belge analizi sırasında bir hata oluştu. Lütfen tekrar deneyin." }]);
+    } finally {
+      setScanningDoc(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   // Speech Recognition - mikrofon izni düzgün istenir
@@ -469,6 +514,19 @@ export default function AppChat() {
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Belge Tarama */}
+              <button
+                onClick={() => { if (plan !== "pro") { setShowProPage(true); return; } fileInputRef.current?.click(); }}
+                disabled={scanningDoc}
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                  scanningDoc ? "bg-teal-500 text-white animate-pulse"
+                  : mode === "incognito" ? "bg-slate-700 text-slate-400 hover:bg-slate-600" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                }`}
+              >
+                <Camera className="w-4 h-4" />
+              </button>
+              <input ref={fileInputRef} type="file" accept="image/*,application/pdf" capture="environment" className="hidden" onChange={handleDocScan} />
+
               {/* Mikrofon */}
               <button
                 onClick={toggleListening}
