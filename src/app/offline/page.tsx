@@ -15,14 +15,14 @@ export default function OfflinePage() {
             <Scale className="w-5 h-5 text-white" />
           </div>
           <span className="text-xl font-black text-slate-900 tracking-tight">
-            Justice<span className="text-blue-600">Guard</span>
+            Haklarım
           </span>
         </div>
         <h1 className="text-2xl font-bold text-slate-900 mb-3">
           Internet Baglantisi Yok
         </h1>
         <p className="text-slate-500 mb-8">
-          JusticeGuard&apos;i kullanmak icin internet baglantisi gereklidir.
+          Haklarım&apos;ı kullanmak icin internet baglantisi gereklidir.
           Lutfen baglantinizi kontrol edip tekrar deneyin.
         </p>
         <Button onClick={() => window.location.reload()} size="lg" className="group">

@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
               });
             }
 
-            const systemPrompt = `Sen JusticeGuard AI'sın — Türk hukuk sistemi uzmanı. Olay analizi yap ve JSON döndür.
+            const systemPrompt = `Sen Haklarım AI'sın — Türk hukuk sistemi uzmanı. Olay analizi yap ve JSON döndür.
 ÇIKTI: {"winProbability":number(15-92),"strengths":string[],"weaknesses":string[],"recommendation":"file_case"|"do_not_file"|"needs_review","analysisReport":string,"riskFactors":string[],"suggestedActions":string[],"selectedPrecedentIndices":number[],"precedentScores":number[]}`;
 
             const aiResponse = await client.messages.create({

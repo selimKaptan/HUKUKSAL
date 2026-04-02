@@ -40,7 +40,7 @@ export default function LawyerDashboardPage() {
               <Scale className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-black text-slate-900 tracking-tight">
-              Justice<span className="text-emerald-600">Guard</span>
+              Haklarım
               <span className="text-xs font-medium text-slate-400 ml-1.5">Avukat Paneli</span>
             </span>
           </Link>

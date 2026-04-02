@@ -18,7 +18,7 @@ export function Navbar() {
             <Scale className="w-5 h-5 text-white" />
           </div>
           <span className="text-xl font-black text-slate-900 tracking-tight">
-            Justice<span className="text-blue-600">Guard</span>
+            Haklarım
           </span>
         </Link>
 

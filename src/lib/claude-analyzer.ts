@@ -6,7 +6,7 @@ import type { UyapDecision } from "./uyap-client";
 
 const client = new Anthropic();
 
-const SYSTEM_PROMPT = `Sen JusticeGuard AI'sın — Türk hukuk sistemi konusunda uzman bir hukuki analiz asistanısın.
+const SYSTEM_PROMPT = `Sen Haklarım AI'sın — Türk hukuk sistemi konusunda uzman bir hukuki analiz asistanısın.
 
 GÖREV: Kullanıcının anlattığı olayı analiz et, emsal kararlarla karşılaştır ve detaylı bir hukuki analiz raporu oluştur.
 

@@ -16,7 +16,7 @@ export function Footer() {
                 <Scale className="w-4 h-4 text-white" />
               </div>
               <span className="text-lg font-bold text-white">
-                Justice<span className="text-blue-400">Guard</span>
+                Haklarım
               </span>
             </div>
             <p className="text-sm leading-relaxed">
@@ -64,7 +64,7 @@ export function Footer() {
 
         <div className="border-t border-slate-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-center md:text-left">
-            &copy; 2026 JusticeGuard. Tüm hakları saklıdır.
+            &copy; 2026 Haklarım. Tüm hakları saklıdır.
           </p>
           <p className="text-xs text-center md:text-right text-slate-500">
             Bu platform hukuki danışmanlık hizmeti vermez. Sonuçlar bilgilendirme amaçlıdır.

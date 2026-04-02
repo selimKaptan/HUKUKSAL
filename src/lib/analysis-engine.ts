@@ -218,7 +218,7 @@ function generateReport(
       ? "DETAYLI AVUKAT DEĞERLENDİRMESİ GEREKLİDİR"
       : "DAVA AÇILMASI ÖNERİLMEZ";
 
-  let report = `# JusticeGuard Hukuki Analiz Raporu\n\n`;
+  let report = `# Haklarım Hukuki Analiz Raporu\n\n`;
   report += `## Genel Değerlendirme\n`;
   report += `**Kazanma Olasılığı:** %${winProbability}\n`;
   report += `**Tavsiye:** ${recommendation}\n\n`;
@@ -261,7 +261,7 @@ function generateReport(
     report += `4. Hukuki sürecin maliyetini ve risklerini değerlendirin.\n`;
   }
 
-  report += `\n---\n*Bu rapor JusticeGuard AI tarafından oluşturulmuştur. Kesin hukuki tavsiye niteliği taşımaz. Profesyonel hukuki danışmanlık almanız tavsiye edilir.*`;
+  report += `\n---\n*Bu rapor Haklarım AI tarafından oluşturulmuştur. Kesin hukuki tavsiye niteliği taşımaz. Profesyonel hukuki danışmanlık almanız tavsiye edilir.*`;
 
   return report;
 }

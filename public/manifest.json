@@ -1,6 +1,6 @@
 {
-  "name": "JusticeGuard - Hukuki Analiz",
-  "short_name": "JusticeGuard",
+  "name": "Haklarım - Hukuki Analiz",
+  "short_name": "Haklarım",
   "description": "Yapay Zeka destekli hukuki analiz ve emsal karar platformu. Davanızın kazanma ihtimalini öğrenin.",
   "start_url": "/",
   "display": "standalone",

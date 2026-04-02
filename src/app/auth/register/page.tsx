@@ -18,7 +18,7 @@ export default function RegisterSelectPage() {
               <Scale className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-black text-slate-900 tracking-tight">
-              Justice<span className="text-blue-600">Guard</span>
+              Haklarım
             </span>
           </Link>
           <h1 className="text-3xl font-black text-slate-900 mb-2">Hesap Oluştur</h1>

@@ -169,7 +169,7 @@ export default function MessagesPage() {
               <Scale className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-black text-slate-900 tracking-tight">
-              Justice<span className="text-blue-600">Guard</span>
+              Haklarım
             </span>
           </Link>
           <Link href="/dashboard" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">

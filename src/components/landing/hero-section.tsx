@@ -7,8 +7,8 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 
 // Store URL'leri - Yayına alındığında gerçek linklerle değiştirilecek
-const APP_STORE_URL = "https://apps.apple.com/tr/app/justiceguard";
-const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.justiceguard.app";
+const APP_STORE_URL = "https://apps.apple.com/tr/app/haklarim";
+const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app.haklarim";
 
 function StoreButtons({ className = "" }: { className?: string }) {
   return (

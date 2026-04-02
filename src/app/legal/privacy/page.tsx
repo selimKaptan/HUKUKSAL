@@ -13,7 +13,7 @@ export default function PrivacyPolicyPage() {
               <Scale className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-black text-slate-900 tracking-tight">
-              Justice<span className="text-blue-600">Guard</span>
+              Haklarım
             </span>
           </Link>
           <Link href="/" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">
@@ -37,7 +37,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 className="text-xl font-bold text-slate-900 mb-3">1. Genel Bakış</h2>
             <p className="text-slate-600 leading-relaxed">
-              JusticeGuard (&quot;Platform&quot;, &quot;Biz&quot;), kullanıcılarının gizliliğine saygı duyar ve kişisel verilerin korunmasını
+              Haklarım (&quot;Platform&quot;, &quot;Biz&quot;), kullanıcılarının gizliliğine saygı duyar ve kişisel verilerin korunmasını
               en yüksek öncelik olarak kabul eder. Bu Gizlilik Politikası, platformumuzu kullandığınızda hangi verilerin
               toplandığını, nasıl kullanıldığını ve korunduğunu açıklamaktadır.
             </p>
@@ -150,8 +150,8 @@ export default function PrivacyPolicyPage() {
               Gizlilik politikamızla ilgili sorularınız için bizimle iletişime geçebilirsiniz:
             </p>
             <p className="text-slate-600 mt-2">
-              <strong>E-posta:</strong> privacy@justiceguard.com.tr<br />
-              <strong>Adres:</strong> JusticeGuard Teknoloji A.Ş., İstanbul, Türkiye
+              <strong>E-posta:</strong> privacy@haklarim.app<br />
+              <strong>Adres:</strong> Haklarım Teknoloji A.Ş., İstanbul, Türkiye
             </p>
           </section>
         </div>

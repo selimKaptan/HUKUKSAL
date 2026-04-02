@@ -74,7 +74,7 @@ export default function FindLawyerPage() {
             <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
               <Scale className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-black text-slate-900 tracking-tight">Justice<span className="text-blue-600">Guard</span></span>
+            <span className="text-xl font-black text-slate-900 tracking-tight">Haklarım</span>
           </Link>
         </div>
       </header>
@@ -125,7 +125,7 @@ export default function FindLawyerPage() {
             {registeredCount > 0 && (
               <div className="mb-6">
                 <h2 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
-                  <BadgeCheck className="w-5 h-5 text-emerald-600" /> JusticeGuard Kayıtlı Avukatlar
+                  <BadgeCheck className="w-5 h-5 text-emerald-600" /> Haklarım Kayıtlı Avukatlar
                 </h2>
                 <div className="grid gap-4">
                   {results.filter((r) => r.type === "registered").map((r, index) => {

@@ -13,7 +13,7 @@ export default function KVKKPage() {
               <Scale className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-black text-slate-900 tracking-tight">
-              Justice<span className="text-blue-600">Guard</span>
+              Haklarım
             </span>
           </Link>
           <Link href="/" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">
@@ -38,7 +38,7 @@ export default function KVKKPage() {
             <h2 className="text-xl font-bold text-slate-900 mb-3">1. Veri Sorumlusu</h2>
             <p className="text-slate-600 leading-relaxed">
               6698 sayılı Kişisel Verilerin Korunması Kanunu (&quot;KVKK&quot;) uyarınca, kişisel verileriniz
-              veri sorumlusu sıfatıyla <strong>JusticeGuard Teknoloji A.Ş.</strong> tarafından aşağıda
+              veri sorumlusu sıfatıyla <strong>Haklarım Teknoloji A.Ş.</strong> tarafından aşağıda
               açıklanan kapsamda işlenecektir.
             </p>
           </section>
@@ -160,8 +160,8 @@ export default function KVKKPage() {
               Yukarıdaki haklarınızı kullanmak için aşağıdaki yöntemlerle başvurabilirsiniz:
             </p>
             <ul className="list-disc list-inside text-slate-600 space-y-1 mt-2">
-              <li><strong>E-posta:</strong> kvkk@justiceguard.com.tr (kayıtlı e-posta adresinizden)</li>
-              <li><strong>Posta:</strong> JusticeGuard Teknoloji A.Ş., İstanbul, Türkiye</li>
+              <li><strong>E-posta:</strong> kvkk@haklarim.app (kayıtlı e-posta adresinizden)</li>
+              <li><strong>Posta:</strong> Haklarım Teknoloji A.Ş., İstanbul, Türkiye</li>
               <li><strong>Platform:</strong> Ayarlar &gt; Hesabımı Sil (veri silme talebi)</li>
             </ul>
             <p className="text-slate-600 leading-relaxed mt-3">

@@ -13,7 +13,7 @@ export default function TermsPage() {
               <Scale className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-black text-slate-900 tracking-tight">
-              Justice<span className="text-blue-600">Guard</span>
+              Haklarım
             </span>
           </Link>
           <Link href="/" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">
@@ -37,13 +37,13 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-bold text-slate-900 mb-3">1. Hizmet Tanımı</h2>
             <p className="text-slate-600 leading-relaxed">
-              JusticeGuard, yapay zeka destekli hukuki analiz ve bilgilendirme platformudur. Platform,
+              Haklarım, yapay zeka destekli hukuki analiz ve bilgilendirme platformudur. Platform,
               kullanıcıların hukuki durumlarını analiz etmelerine, emsal kararlara erişmelerine ve avukat
               bulmalarına yardımcı olur.
             </p>
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-3">
               <p className="text-sm text-amber-800 font-semibold">
-                JusticeGuard bir hukuk bürosu değildir ve avukatlık hizmeti vermez. Platform tarafından
+                Haklarım bir hukuk bürosu değildir ve avukatlık hizmeti vermez. Platform tarafından
                 sunulan analizler ve öneriler yalnızca bilgilendirme amaçlıdır ve profesyonel hukuki
                 danışmanlığın yerini almaz.
               </p>
@@ -108,7 +108,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-bold text-slate-900 mb-3">7. Fikri Mülkiyet</h2>
             <p className="text-slate-600 leading-relaxed">
-              Platform tasarımı, kodu, logosu ve içeriği JusticeGuard&apos;ın fikri mülkiyetidir.
+              Platform tasarımı, kodu, logosu ve içeriği Haklarım&apos;ın fikri mülkiyetidir.
               Kullanıcılar tarafından girilen dava bilgileri ve belgeler kullanıcıya aittir.
               AI tarafından üretilen analiz raporları kullanıcının kişisel kullanımı içindir.
             </p>
@@ -118,9 +118,9 @@ export default function TermsPage() {
             <h2 className="text-xl font-bold text-slate-900 mb-3">8. Sorumluluk Sınırlaması</h2>
             <div className="bg-red-50 border border-red-200 rounded-xl p-4">
               <p className="text-sm text-red-800 leading-relaxed">
-                JusticeGuard, AI analiz sonuçlarının doğruluğu, eksiksizliği veya uygunluğu konusunda
+                Haklarım, AI analiz sonuçlarının doğruluğu, eksiksizliği veya uygunluğu konusunda
                 hiçbir garanti vermez. Platform tarafından sunulan bilgilere dayanarak alınan kararlarda
-                oluşabilecek zararlardan JusticeGuard sorumlu tutulamaz. Hukuki kararlarınız için mutlaka
+                oluşabilecek zararlardan Haklarım sorumlu tutulamaz. Hukuki kararlarınız için mutlaka
                 lisanslı bir avukata danışmanız önerilir.
               </p>
             </div>
@@ -154,8 +154,8 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-bold text-slate-900 mb-3">12. İletişim</h2>
             <p className="text-slate-600">
-              <strong>E-posta:</strong> info@justiceguard.com.tr<br />
-              <strong>Adres:</strong> JusticeGuard Teknoloji A.Ş., İstanbul, Türkiye
+              <strong>E-posta:</strong> info@haklarim.app<br />
+              <strong>Adres:</strong> Haklarım Teknoloji A.Ş., İstanbul, Türkiye
             </p>
           </section>
         </div>

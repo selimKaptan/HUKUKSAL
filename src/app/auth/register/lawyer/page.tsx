@@ -107,7 +107,7 @@ export default function LawyerRegisterPage() {
               <Scale className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-black text-slate-900 tracking-tight">
-              Justice<span className="text-emerald-600">Guard</span>
+              Haklarım
               <span className="text-sm font-medium text-slate-400 ml-2">Avukat</span>
             </span>
           </Link>

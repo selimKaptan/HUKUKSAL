@@ -116,7 +116,7 @@ export default function AdminDashboard() {
               <Shield className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-black text-white tracking-tight">
-              Justice<span className="text-red-500">Guard</span>
+              Haklarım
               <span className="text-xs text-red-400 ml-2 font-normal">ADMIN</span>
             </span>
           </Link>
