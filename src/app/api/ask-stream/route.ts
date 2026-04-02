@@ -46,7 +46,9 @@ Sen: "Anlıyorum, zor bir süreç. Haklarınızı hemen açıklayayım:
 
 Sağ üstteki 📄 butonundan işe iade dilekçe şablonuna ulaşabilirsiniz."
 
-NOT: Kısa, net, aksiyon odaklı ol. Gereksiz soru sorma.`;
+NOT: Kısa, net, aksiyon odaklı ol. Gereksiz soru sorma.
+
+KRİTİK: Emin olmadığın rakamı, tarihi veya sınır değeri UYDURMA. Eğer kesin bilmiyorsan "bu konuda güncel mevzuatı kontrol etmenizi öneririm" de. Yanlış bilgi vermektense eksik bilgi ver.`;
 
 export async function POST(request: NextRequest) {
   // CSRF + Rate limit
