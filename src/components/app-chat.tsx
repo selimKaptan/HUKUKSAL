@@ -15,6 +15,7 @@ import { trackEvent, EVENTS } from "@/lib/analytics";
 import { getChatHistory, saveChat, deleteChat, generateChatTitle, type SavedChat } from "@/lib/chat-history";
 import { getTodaysCase } from "@/lib/daily-cases";
 import { shareApp, recordShare } from "@/lib/referral";
+import { trackMilestone } from "@/lib/milestones";
 
 // Hazır soru şablonları
 const QUICK_TEMPLATES = [
@@ -50,6 +51,7 @@ export default function AppChat() {
   const [currentChatId, setCurrentChatId] = useState<string>(`chat_${Date.now()}`);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [shareToast, setShareToast] = useState("");
+  const [milestoneToast, setMilestoneToast] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -199,7 +201,7 @@ export default function AppChat() {
       return;
     }
 
-    // AI Avukat modu - /api/ask ile konuşma
+    // AI Avukat modu - streaming ile konuşma
     setInput("");
     trackEvent(EVENTS.ANALYSIS_STARTED);
 
@@ -208,34 +210,70 @@ export default function AppChat() {
     setMessages(updatedMessages);
     setLoading(true);
 
+    const aiMsgId = `a_${Date.now()}`;
+
     try {
-      // Tüm mesaj geçmişini gönder (avukat bağlamı korunsun)
       const apiMessages = updatedMessages.map((m) => ({ role: m.role, content: m.content }));
 
-      const response = await fetch("/api/ask", {
+      // Streaming dene, başarısız olursa normal endpoint'e düş
+      const response = await fetch("/api/ask-stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: apiMessages,
-          incognito: mode === "incognito",
-        }),
+        body: JSON.stringify({ messages: apiMessages, incognito: mode === "incognito" }),
       });
 
-      if (!response.ok) throw new Error("Hata");
-      const data = await response.json();
+      if (response.ok && response.body) {
+        // Streaming yanıt - kelime kelime göster
+        setMessages((prev) => [...prev, { id: aiMsgId, role: "assistant", content: "" }]);
+        setLoading(false);
 
-      setMessages((prev) => [...prev, {
-        id: `a_${Date.now()}`,
-        role: "assistant",
-        content: data.content || "Bir hata oluştu.",
-      }]);
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const payload = line.slice(6);
+              if (payload === "[DONE]") break;
+              try {
+                const data = JSON.parse(payload);
+                if (data.text) {
+                  setMessages((prev) => prev.map((m) =>
+                    m.id === aiMsgId ? { ...m, content: m.content + data.text } : m
+                  ));
+                }
+              } catch { /* parse error */ }
+            }
+          }
+        }
+      } else {
+        // Fallback: normal endpoint
+        const fallback = await fetch("/api/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: apiMessages, incognito: mode === "incognito" }),
+        });
+        const data = await fallback.json();
+        setMessages((prev) => [...prev, { id: aiMsgId, role: "assistant", content: data.content || "Bir hata oluştu." }]);
+        setLoading(false);
+      }
+
+      // Milestone kontrolü
+      const ms = trackMilestone("questions");
+      if (ms) {
+        setMilestoneToast(`${ms.emoji} ${ms.title}: ${ms.description}`);
+        setTimeout(() => setMilestoneToast(""), 4000);
+      }
     } catch {
-      setMessages((prev) => [...prev, {
-        id: `e_${Date.now()}`,
-        role: "assistant",
-        content: "Bağlantı hatası. Lütfen tekrar deneyin.",
-      }]);
-    } finally {
+      setMessages((prev) => [...prev, { id: aiMsgId, role: "assistant", content: "Bağlantı hatası. Lütfen tekrar deneyin." }]);
       setLoading(false);
     }
   };
@@ -602,14 +640,14 @@ export default function AppChat() {
         )}
       </AnimatePresence>
 
-      {/* Share Toast */}
+      {/* Toasts */}
       <AnimatePresence>
-        {shareToast && (
+        {(shareToast || milestoneToast) && (
           <motion.div
             initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-20 left-4 right-4 z-50 bg-emerald-600 text-white text-sm font-semibold py-3 px-4 rounded-2xl text-center shadow-lg"
+            className={`fixed bottom-20 left-4 right-4 z-50 text-white text-sm font-semibold py-3 px-4 rounded-2xl text-center shadow-lg ${milestoneToast ? "bg-indigo-600" : "bg-emerald-600"}`}
           >
-            {shareToast}
+            {milestoneToast || shareToast}
           </motion.div>
         )}
       </AnimatePresence>
