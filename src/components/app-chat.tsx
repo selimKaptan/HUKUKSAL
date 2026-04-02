@@ -44,7 +44,7 @@ export default function AppChat() {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<AppMode>("lawyer");
   const [isListening, setIsListening] = useState(false);
-  // showModeSelector removed - + button handles AI Emsal directly
+  const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [showProPage, setShowProPage] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [chatHistory, setChatHistory] = useState<SavedChat[]>([]);
@@ -489,25 +489,13 @@ export default function AppChat() {
           />
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-2">
-              {/* + butonu → AI Emsal */}
+              {/* + butonu → Seçenekler bottom sheet */}
               <button
-                onClick={() => {
-                  if (mode === "emsal") { setMode("lawyer"); setMessages([]); }
-                  else {
-                    if (plan !== "pro") { setShowProPage(true); return; }
-                    setMode("emsal"); setMessages([]);
-                  }
-                }}
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-lg font-light transition-all ${
-                  mode === "emsal" ? "bg-teal-500 text-white" : mode === "incognito" ? "bg-slate-700 text-slate-400" : "bg-slate-100 text-slate-500"
-                }`}
+                onClick={() => setShowPlusMenu(true)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-light transition-all bg-slate-100 text-slate-500 hover:bg-slate-200"
               >
-                {mode === "emsal" ? <X className="w-4 h-4" /> : "+"}
+                +
               </button>
-
-              {mode === "emsal" && (
-                <span className="text-xs font-semibold text-teal-600">AI Emsal</span>
-              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -549,7 +537,58 @@ export default function AppChat() {
         </div>
       </div>
 
-      {/* Mode Selector kaldırıldı - + butonu direkt AI Emsal'a geçiyor */}
+      {/* + Menu Bottom Sheet - Perplexity Style */}
+      <AnimatePresence>
+        {showPlusMenu && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/30 z-50" onClick={() => setShowPlusMenu(false)} />
+            <motion.div
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 250 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl safe-area-bottom"
+            >
+              <div className="p-5">
+                <div className="w-10 h-1 bg-slate-300 rounded-full mx-auto mb-4" />
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-slate-900">Seçenekler</h3>
+                  <button onClick={() => setShowPlusMenu(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                    <X className="w-4 h-4 text-slate-500" />
+                  </button>
+                </div>
+
+                {/* Grid butonlar */}
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  <button onClick={() => { setShowPlusMenu(false); if (plan !== "pro") { setShowProPage(true); return; } fileInputRef.current?.click(); }}
+                    className="flex flex-col items-center gap-2 p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors">
+                    <Camera className="w-6 h-6 text-slate-600" />
+                    <span className="text-xs font-semibold text-slate-700">Kamera</span>
+                  </button>
+                  <button onClick={() => { setShowPlusMenu(false); if (plan !== "pro") { setShowProPage(true); return; } fileInputRef.current?.click(); }}
+                    className="flex flex-col items-center gap-2 p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors">
+                    <FileText className="w-6 h-6 text-slate-600" />
+                    <span className="text-xs font-semibold text-slate-700">Dosya</span>
+                  </button>
+                  <button onClick={() => { setShowPlusMenu(false); if (plan !== "pro") { setShowProPage(true); return; } setMode("emsal"); setMessages([]); }}
+                    className="flex flex-col items-center gap-2 p-4 bg-teal-50 rounded-2xl hover:bg-teal-100 transition-colors border border-teal-200">
+                    <Search className="w-6 h-6 text-teal-600" />
+                    <span className="text-xs font-semibold text-teal-700">AI Emsal</span>
+                  </button>
+                </div>
+
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Search className="w-4 h-4 text-teal-600" />
+                    <span className="text-sm font-semibold text-slate-800">AI Emsal Analizi</span>
+                    {plan !== "pro" && <span className="text-[10px] bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full font-bold">PRO</span>}
+                  </div>
+                  <p className="text-xs text-slate-500">Emsal kararlarla davanızı analiz edin. Kazanma oranı ve eşleştirme.</p>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Pro Bottom Sheet */}
       <AnimatePresence>
