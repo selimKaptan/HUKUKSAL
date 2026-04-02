@@ -108,6 +108,58 @@ Herkes, meşru vasıta ve yollardan faydalanmak suretiyle yargı mercileri önü
     38: `Anayasa md. 38 - Suç ve cezalara ilişkin esaslar:
 Kimse, işlendiği zaman yürürlükte bulunan kanunun suç saymadığı bir fiilden dolayı cezalandırılamaz; kimseye suçu işlediği zaman kanunda o suç için konulmuş olan cezadan daha ağır bir ceza verilemez. Suçluluğu hükmen sabit oluncaya kadar, kimse suçlu sayılamaz.`,
   },
+
+  // Karayolları Trafik Kanunu (2918)
+  "KTK": {
+    48: `KTK md. 48 - Alkollü araç kullanma yasağı:
+Uyuşturucu veya keyif verici maddeleri almış olanlar ile alkollü içki almış olması nedeniyle güvenli sürme yeteneklerini kaybetmiş kişilerin karayolunda araç sürmeleri yasaktır.
+- Hususi otomobil sürücüleri için alkol sınırı: 0,50 promil
+- Ticari araç sürücüleri için: 0,20 promil
+- Motosiklet sürücüleri için: 0,20 promil
+- Alkol sınırını aşan sürücülerin ehliyetine el konulur ve idari para cezası uygulanır.
+- 1,00 promilin üzerinde TCK md. 179 (trafik güvenliğini tehlikeye sokma) kapsamında cezai işlem yapılır.
+- İlk ihlalde 6 ay, ikincide 2 yıl, üçüncüde 5 yıl ehliyete el konulur (2024 düzenlemesi ile 3 ay, 6 ay, ehliyetin geri alınması).`,
+
+    52: `KTK md. 52 - Hız sınırları:
+- Şehir içi: 50 km/s (otomobil), 40 km/s (ticari)
+- Şehir dışı: 90 km/s (otomobil), 80 km/s (ticari)
+- Otoyol: 120 km/s (otomobil), 100 km/s (ticari)
+Hız sınırını %10'dan fazla aşmak idari para cezası gerektirir.`,
+
+    85: `KTK md. 85 - İşletenin sorumluluğu:
+Bir motorlu aracın işletilmesi bir kimsenin ölümüne veya yaralanmasına yahut bir şeyin zarara uğramasına sebep olursa, motorlu aracın bir teşebbüsün unvanı veya işletme adı altında veya bu teşebbüs tarafından kesilen biletle işletilmesi halinde, motorlu aracın işleteni ve bağlı olduğu teşebbüsün sahibi, doğan zarardan müştereken ve müteselsilen sorumlu olurlar.`,
+
+    90: `KTK md. 90 - Zorunlu mali sorumluluk sigortası (Trafik Sigortası):
+İşletenlerin, kanunun 85. maddesindeki sorumlulukları karşılamak üzere mali sorumluluk sigortası yaptırmaları zorunludur. Trafik kazasında zarara uğrayan kişi doğrudan sigortacıya başvurabilir.`,
+
+    97: `KTK md. 97 - Trafik kazası tazminat davası:
+Zarar görenin, zorunlu mali sorumluluk sigortasında öngörülen sınırlar içinde dava yoluna gitmeden önce ilgili sigorta kuruluşuna yazılı başvuruda bulunması gerekir. Sigorta kuruluşunun başvuru tarihinden itibaren en geç 15 gün içinde başvuruyu yazılı olarak cevaplandırması gerekir.`,
+  },
+
+  // Sosyal Güvenlik
+  "SGK": {
+    4: `5510 sayılı SGK Kanunu md. 4 - Sigortalı sayılanlar:
+a) Hizmet akdi ile bir veya birden fazla işveren tarafından çalıştırılanlar (SSK'lılar)
+b) Köy ve mahalle muhtarları ile bağımsız çalışanlar (Bağ-Kur'lular)
+c) Kamu görevlileri (Emekli Sandığı)`,
+
+    25: `5510 sayılı SGK Kanunu md. 25 - Maluliyet:
+Çalışma gücünün en az %60'ını kaybettiği Kurum Sağlık Kurulunca tespit edilen sigortalı, malul sayılır.`,
+
+    28: `5510 sayılı SGK Kanunu md. 28 - Yaşlılık aylığı (Emeklilik):
+- Kadınlarda 58, erkeklerde 60 yaş (kademeli artış ile 65'e çıkacak)
+- En az 9000 gün prim ödeme (25 yıl sigortalılık + 5400 gün prim)
+- EYT: 08.09.1999 öncesi işe başlayanlar için yaş şartı aranmaz`,
+  },
+
+  // İdari para cezaları / Kabahatler
+  "KabK": {
+    3: `Kabahatler Kanunu md. 3 - Genel kanun niteliği:
+Bu Kanunun genel hükümleri diğer kanunlardaki kabahatler hakkında da uygulanır.`,
+
+    27: `Kabahatler Kanunu md. 27 - Başvuru yolu:
+İdari para cezasına karşı, kararın tebliğ veya tefhimi tarihinden itibaren en geç onbeş gün içinde sulh ceza hâkimliğine başvurulabilir.`,
+  },
 };
 
 // Kategori → anahtar kelime → ilgili maddeler eşleştirmesi
@@ -138,6 +190,28 @@ const KEYWORD_TO_ARTICLES: Record<string, { kanun: string; maddeler: number[] }[
   "haksız fiil": [{ kanun: "TBK", maddeler: [49, 50, 51, 56] }],
   "dürüstlük": [{ kanun: "TMK", maddeler: [2] }],
   "adil yargılanma": [{ kanun: "Anayasa", maddeler: [36] }],
+  // Trafik
+  "alkol": [{ kanun: "KTK", maddeler: [48] }],
+  "promil": [{ kanun: "KTK", maddeler: [48] }],
+  "alkollü araç": [{ kanun: "KTK", maddeler: [48] }],
+  "ehliyet": [{ kanun: "KTK", maddeler: [48] }],
+  "trafik kazası": [{ kanun: "KTK", maddeler: [85, 90, 97] }],
+  "trafik cezası": [{ kanun: "KTK", maddeler: [48, 52] }],
+  "hız sınır": [{ kanun: "KTK", maddeler: [52] }],
+  "trafik sigortası": [{ kanun: "KTK", maddeler: [90, 97] }],
+  "kasko": [{ kanun: "KTK", maddeler: [90] }],
+  "değer kaybı": [{ kanun: "KTK", maddeler: [85, 90] }],
+  // SGK / Emeklilik
+  "emeklilik": [{ kanun: "SGK", maddeler: [28] }],
+  "emekli": [{ kanun: "SGK", maddeler: [28] }],
+  "eyt": [{ kanun: "SGK", maddeler: [28] }],
+  "sigorta": [{ kanun: "SGK", maddeler: [4] }],
+  "sgk": [{ kanun: "SGK", maddeler: [4, 28] }],
+  "maluliyet": [{ kanun: "SGK", maddeler: [25] }],
+  "engelli": [{ kanun: "SGK", maddeler: [25] }],
+  // İdari para cezası
+  "idari para cezası": [{ kanun: "KabK", maddeler: [27] }],
+  "para cezası itiraz": [{ kanun: "KabK", maddeler: [27] }],
 };
 
 /**
