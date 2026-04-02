@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Scale, Flame, Lightbulb, Crown, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { AnalysisForm } from "@/components/dashboard/analysis-form";
+import { ProgressSteps } from "@/components/ui/progress-steps";
+import { WizardStep1 } from "@/components/dashboard/wizard-step1";
+import { WizardStep2 } from "@/components/dashboard/wizard-step2";
 import { useAuth } from "@/lib/auth-context";
 import { saveCaseResult } from "@/lib/case-storage";
 import { saveCase } from "@/lib/db";
@@ -24,6 +25,8 @@ interface FormData {
   opposingParty: string;
   additionalNotes: string;
 }
+
+const STEPS = ["Dava Bilgileri", "Olay Detayı", "Belgeler & Analiz"];
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -158,9 +161,6 @@ export default function DashboardPage() {
       // Analiz sayacını artır
       incrementAnalysisCount();
 
-      // Analiz kullanımını artır
-      if (user) incrementAnalysisUsage(user.id);
-
       // Save to user history if logged in
       if (user) {
         // localStorage (eski yöntem - fallback)
@@ -208,16 +208,12 @@ export default function DashboardPage() {
     }
   };
 
-  if (authLoading || !user) {
-    return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-pulse text-slate-400">Yükleniyor...</div></div>;
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-white">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-100 sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
+        <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
             <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
               <Scale className="w-5 h-5 text-white" />
             </div>
@@ -225,13 +221,7 @@ export default function DashboardPage() {
               Haklarım
             </span>
           </Link>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-500 hidden sm:block">{user.name || user.email}</span>
-            <Link href="/settings"><button className="p-2 hover:bg-slate-100 rounded-lg transition-colors"><Settings className="w-4 h-4 text-slate-500" /></button></Link>
-            <Button variant="ghost" size="sm" onClick={() => { signOut(); router.push("/"); }}>
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
+          <span className="text-sm text-slate-400 font-medium">Dava Analiz Sihirbazı</span>
         </div>
       </header>
 
@@ -318,24 +308,58 @@ export default function DashboardPage() {
         {/* Progress Steps */}
         <ProgressSteps steps={STEPS} currentStep={currentStep} />
 
-        {/* Hoşgeldin Paneli - wizard kapalıyken göster */}
-        {!showWizard && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            {/* Hoşgeldin */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-black text-slate-900 mb-1">Hoşgeldin, {user.name || "Kullanıcı"}!</h1>
-              <p className="text-slate-500">Haklarınızı öğrenin, ne yapmanız gerektiğini bilin.</p>
-            </div>
+        {/* Wizard Content */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 p-8 md:p-10">
+          <AnimatePresence mode="wait">
+            {currentStep === 0 && (
+              <WizardStep1
+                key="step1"
+                title={formData.title}
+                category={formData.category}
+                onUpdate={updateForm}
+                onNext={() => setCurrentStep(1)}
+              />
+            )}
+            {currentStep === 1 && (
+              <WizardStep2
+                key="step2"
+                eventSummary={formData.eventSummary}
+                eventDate={formData.eventDate}
+                opposingParty={formData.opposingParty}
+                onUpdate={updateForm}
+                onNext={() => setCurrentStep(2)}
+                onBack={() => setCurrentStep(0)}
+              />
+            )}
+            {currentStep === 2 && (
+              <WizardStep3
+                key="step3"
+                additionalNotes={formData.additionalNotes}
+                onUpdate={updateForm}
+                onBack={() => setCurrentStep(1)}
+                onSubmit={handleSubmit}
+                isAnalyzing={isAnalyzing}
+              />
+            )}
+          </AnimatePresence>
+        </div>
 
-            {/* Ana Aksiyon - Yeni Analiz */}
-            <div
-              onClick={() => setShowWizard(true)}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 mb-8 cursor-pointer hover:shadow-2xl hover:shadow-blue-200 transition-all group"
+        {/* Loading overlay */}
+        <AnimatePresence>
+          {isAnalyzing && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-white/80 backdrop-blur-sm flex items-center justify-center"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-2">Sorununuzu Anlatın, Haklarınızı Öğrenin</h2>
-                  <p className="text-blue-100">Ne olduğunu anlatın, yapay zeka size ne yapmanız gerektiğini söylesin.</p>
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="text-center"
+              >
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-300 animate-pulse">
+                  <Scale className="w-10 h-10 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold text-slate-900 mb-2">
                   Davanız Analiz Ediliyor
@@ -357,114 +381,10 @@ export default function DashboardPage() {
                     />
                   ))}
                 </div>
-              </div>
-            </div>
-
-            {/* Hızlı Erişim Kartları */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <Link href="/history">
-                <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-blue-200 transition-all cursor-pointer group">
-                  <History className="w-8 h-8 text-blue-500 mb-3 group-hover:scale-110 transition-transform" />
-                  <h3 className="font-bold text-slate-900 mb-1">Geçmiş Sorgularım</h3>
-                  <p className="text-xs text-slate-500">Önceki analizlerinizi görüntüleyin</p>
-                </div>
-              </Link>
-              <Link href="/tools/find-lawyer">
-                <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-emerald-200 transition-all cursor-pointer group">
-                  <UserSearch className="w-8 h-8 text-emerald-500 mb-3 group-hover:scale-110 transition-transform" />
-                  <h3 className="font-bold text-slate-900 mb-1">Avukat Bul</h3>
-                  <p className="text-xs text-slate-500">Size uygun uzman avukat bulun</p>
-                </div>
-              </Link>
-              <Link href="/tools/mediation">
-                <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-amber-200 transition-all cursor-pointer group">
-                  <Calculator className="w-8 h-8 text-amber-500 mb-3 group-hover:scale-110 transition-transform" />
-                  <h3 className="font-bold text-slate-900 mb-1">Arabuluculuk</h3>
-                  <p className="text-xs text-slate-500">Dava mı arabuluculuk mu?</p>
-                </div>
-              </Link>
-              <Link href="/ask">
-                <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-violet-200 transition-all cursor-pointer group">
-                  <MessageCircle className="w-8 h-8 text-violet-500 mb-3 group-hover:scale-110 transition-transform" />
-                  <h3 className="font-bold text-slate-900 mb-1">Soru Sorun</h3>
-                  <p className="text-xs text-slate-500">Ne yapmalıyım? diye sorun</p>
-                </div>
-              </Link>
-            </div>
-
-            {/* Alt Araçlar */}
-            <div className="grid md:grid-cols-3 gap-4">
-              <Link href="/messages">
-                <div className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-all flex items-center gap-4 cursor-pointer">
-                  <Mail className="w-6 h-6 text-slate-400" />
-                  <div>
-                    <h3 className="font-semibold text-slate-900 text-sm">Mesajlar</h3>
-                    <p className="text-xs text-slate-500">Avukatınızla yazışın</p>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-slate-300 ml-auto" />
-                </div>
-              </Link>
-              <Link href="/tools/statute-of-limitations">
-                <div className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-all flex items-center gap-4 cursor-pointer">
-                  <Clock className="w-6 h-6 text-slate-400" />
-                  <div>
-                    <h3 className="font-semibold text-slate-900 text-sm">Zamanaşımı Hesaplayıcı</h3>
-                    <p className="text-xs text-slate-500">Sürelerinizi kontrol edin</p>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-slate-300 ml-auto" />
-                </div>
-              </Link>
-              <Link href="/pricing">
-                <div className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-all flex items-center gap-4 cursor-pointer">
-                  <CreditCard className="w-6 h-6 text-slate-400" />
-                  <div>
-                    <h3 className="font-semibold text-slate-900 text-sm">Planlar ve Fiyatlar</h3>
-                    <p className="text-xs text-slate-500">Pro plana yükseltin</p>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-slate-300 ml-auto" />
-                </div>
-              </Link>
-            </div>
-
-            {/* Referans */}
-            <Link href="/referral" className="mt-4 block">
-              <div className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl p-4 flex items-center gap-4 text-white hover:shadow-lg transition-all">
-                <Gift className="w-6 h-6" />
-                <div>
-                  <h3 className="font-bold text-sm">Arkadaşına Yardım Et</h3>
-                  <p className="text-xs text-amber-100">Paylaş, haklarını öğrensin</p>
-                </div>
-                <ArrowRight className="w-4 h-4 ml-auto" />
-              </div>
-            </Link>
-
-            {/* Admin Panel Linki */}
-            {user && isAdmin(user.email) && (
-              <Link href="/admin" className="mt-4 block">
-                <div className="bg-gradient-to-r from-red-500 to-rose-600 rounded-xl p-4 flex items-center gap-4 text-white hover:shadow-lg transition-all">
-                  <Shield className="w-6 h-6" />
-                  <div>
-                    <h3 className="font-bold text-sm">Admin Panel</h3>
-                    <p className="text-xs text-red-100">Sınırsız erişim - Yönetim paneli</p>
-                  </div>
-                  <ArrowRight className="w-4 h-4 ml-auto" />
-                </div>
-              </Link>
-            )}
-          </motion.div>
-        )}
-
-        {/* Analiz Formu */}
-        {showWizard && (
-          <AnalysisForm
-            formData={formData}
-            updateForm={updateForm}
-            isAnalyzing={isAnalyzing}
-            onSubmit={handleSubmit}
-            onBack={() => setShowWizard(false)}
-          />
-        )}
-
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Paywall modal */}

@@ -6,38 +6,7 @@ import { searchUyapPrecedents, getCategoryKeywords } from "@/lib/uyap-client";
 import { apiSecurityCheck, safeErrorResponse } from "@/lib/api-security";
 import { validateAnalysisInput, sanitizeForPrompt } from "@/lib/sanitize";
 import type { CaseCategory } from "@/types/database";
-import { cleanFormInput } from "@/lib/sanitize";
-import { supabase, hasSupabase } from "@/lib/supabase";
-
-// Admin emails - sınırsız
-const ADMIN_EMAILS = ["selim@barbarosshipping.com"];
-const FREE_LIMIT = 3;
-
-// Vercel timeout'u artır
-export const maxDuration = 60;
-
-// Server-side kullanım limiti kontrolü
-async function checkUsageLimit(userId: string, userEmail: string): Promise<{ allowed: boolean; used: number }> {
-  // Admin her zaman geçer
-  if (ADMIN_EMAILS.includes(userEmail.toLowerCase())) {
-    return { allowed: true, used: 0 };
-  }
-
-  if (hasSupabase) {
-    try {
-      const { count, error } = await supabase
-        .from("cases")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId);
-      if (!error && count !== null) {
-        return { allowed: count < FREE_LIMIT, used: count };
-      }
-    } catch { /* fallback */ }
-  }
-
-  // Supabase yoksa izin ver (client-side kontrol devrede)
-  return { allowed: true, used: 0 };
-}
+import type { UyapDecision } from "@/lib/uyap-client";
 
 /**
  * AI ile olay özetinden en uygun UYAP arama kelimelerini çıkarır.
@@ -196,16 +165,12 @@ export async function POST(request: NextRequest) {
     let analysisResult;
     if (hasClaudeKey) {
       try {
-        const analysisResult = await analyzeCaseWithClaude(
-          safeEventSummary,
-          safeCategory as CaseCategory,
-          safeNotes
+        analysisResult = await analyzeCaseWithClaude(
+          eventSummary,
+          category as CaseCategory,
+          additionalNotes,
+          uyapDecisions.length > 0 ? uyapDecisions : undefined
         );
-
-        return NextResponse.json({
-          ...analysisResult,
-          aiProvider: "claude",
-        });
       } catch (error) {
         console.error("Claude API error, falling back to local:", error);
         analysisResult = analyzeCase(eventSummary, category as CaseCategory, additionalNotes);
@@ -215,7 +180,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Sonuçları birleştir
-    const response = {
+    return NextResponse.json({
       ...analysisResult,
       uyapPrecedents: uyapDecisions,
       uyapAvailable,
@@ -223,11 +188,6 @@ export async function POST(request: NextRequest) {
       uyapTotalCount,
       aiProvider: hasClaudeKey ? "claude" : "local",
       searchKeywords: hasClaudeKey ? searchKeywords : undefined,
-    };
-
-    return NextResponse.json({
-      ...analysisResult,
-      aiProvider: "local",
     });
   } catch (error) {
     return safeErrorResponse(error, "Analiz sırasında bir hata oluştu. Lütfen tekrar deneyin.");

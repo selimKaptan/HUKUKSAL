@@ -24,12 +24,6 @@ export function Navbar() {
 
         {/* Araçlar */}
         <div className="hidden md:flex items-center gap-1">
-          <Link href="/blog" className="px-3 py-2 text-sm text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1.5">
-            Rehber
-          </Link>
-          <Link href="/pricing" className="px-3 py-2 text-sm text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1.5">
-            <CreditCard className="w-3.5 h-3.5" /> Fiyatlar
-          </Link>
           <Link href="/tools/mediation" className="px-3 py-2 text-sm text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1.5">
             <Calculator className="w-3.5 h-3.5" /> Arabuluculuk
           </Link>

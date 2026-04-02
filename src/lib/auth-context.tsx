@@ -54,7 +54,10 @@ export function checkIsAdmin(email?: string): boolean {
   return !!email && ADMIN_EMAILS.includes(email.toLowerCase());
 }
 
-const hasSupabase = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
+function saveUserLocal(u: User | null) {
+  if (u) localStorage.setItem("jg_user", JSON.stringify(u));
+  else localStorage.removeItem("jg_user");
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

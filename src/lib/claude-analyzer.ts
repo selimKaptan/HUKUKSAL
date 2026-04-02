@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { AnalysisResult, CaseCategory, Precedent } from "@/types/database";
 import { CASE_CATEGORY_LABELS } from "@/types/database";
+import { PRECEDENTS_DB } from "./precedents-data";
+import type { UyapDecision } from "./uyap-client";
 
 const client = new Anthropic();
 
@@ -99,21 +101,16 @@ function buildPrecedentContext(
   return { context, indexedPrecedents };
 }
 
-SADECE JSON ver. Baska metin EKLEME.`;
-
 export async function analyzeCaseWithClaude(
   eventSummary: string,
   category: CaseCategory,
-  additionalNotes?: string
+  additionalNotes?: string,
+  uyapDecisions?: UyapDecision[]
 ): Promise<AnalysisResult & { matchedPrecedents: (Precedent & { relevance_score: number })[] }> {
   const { context: precedentContext, indexedPrecedents } = buildPrecedentContext(category, uyapDecisions);
   const categoryLabel = CASE_CATEGORY_LABELS[category];
 
-  const userMessage = `Kategori: ${categoryLabel}
-Olay: ${eventSummary}
-${additionalNotes ? `Ek: ${additionalNotes}` : ""}
-
-**Kategori:** ${categoryLabel}
+  const userMessage = `**Kategori:** ${categoryLabel}
 **Olay Özeti:**
 ${eventSummary}
 

@@ -269,7 +269,7 @@ export default function HistoryPage() {
           </motion.div>
         ) : (
           <div className="grid gap-4">
-            {filteredCases.map((c, index) => (
+            {cases.map((c, index) => (
               <motion.div
                 key={c.id}
                 initial={{ opacity: 0, y: 20 }}
