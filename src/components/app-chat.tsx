@@ -7,12 +7,14 @@ import {
   Scale, Send, Mic, X, Crown, ChevronRight,
   User, Sparkles, Search, Copy, Check,
   UserSearch, Share2, BookOpen, Camera, FileText,
+  Volume2, Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { getUserPlan, canDoAnalysis, incrementAnalysisCount } from "@/lib/feature-gate";
 import { trackEvent, EVENTS } from "@/lib/analytics";
 import { validateCitations, calculateConfidenceScore, type CitationValidation } from "@/lib/citation-validator";
+import { speak, stop, isSpeaking } from "@/lib/tts";
 import { getChatHistory, saveChat, deleteChat, generateChatTitle, type SavedChat } from "@/lib/chat-history";
 import { getTodaysCase } from "@/lib/daily-cases";
 import { shareApp, recordShare } from "@/lib/referral";
@@ -57,6 +59,7 @@ export default function AppChat() {
   const [shareToast, setShareToast] = useState("");
   const [milestoneToast, setMilestoneToast] = useState("");
   const [scanningDoc, setScanningDoc] = useState(false);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -118,6 +121,17 @@ export default function AppChat() {
     setCurrentChatId(chat.id);
     setMode(chat.mode === "incognito" ? "lawyer" : chat.mode);
     setShowHistory(false);
+  };
+
+  // Sesli okuma toggle
+  const toggleSpeak = (id: string, content: string) => {
+    if (speakingId === id && isSpeaking()) {
+      stop();
+      setSpeakingId(null);
+    } else {
+      speak(content, () => setSpeakingId(null));
+      setSpeakingId(id);
+    }
   };
 
   // Belge tarama (kamera / dosya)
@@ -469,6 +483,10 @@ export default function AppChat() {
                         </div>
                       )}
                       <div className="flex items-center gap-2">
+                        <button onClick={() => toggleSpeak(msg.id, msg.content)}
+                          className={`text-[10px] flex items-center gap-1 ${speakingId === msg.id ? "text-teal-600" : "text-slate-400"} hover:text-teal-600`}>
+                          <Volume2 className="w-3 h-3" /> {speakingId === msg.id ? "Durdur" : "Dinle"}
+                        </button>
                         <button onClick={() => copyMessage(msg.id, msg.content)}
                           className="text-[10px] flex items-center gap-1 text-slate-400 hover:text-slate-600">
                           {copiedId === msg.id ? <><Check className="w-3 h-3 text-emerald-500" /> Kopyalandı</> : <><Copy className="w-3 h-3" /> Kopyala</>}
@@ -743,6 +761,9 @@ export default function AppChat() {
                 </Link>
                 <Link href="/tools/glossary" className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg" onClick={() => setShowHistory(false)}>
                   <BookOpen className="w-4 h-4" /> Hukuk Sözlüğü
+                </Link>
+                <Link href="/takvim" className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg" onClick={() => setShowHistory(false)}>
+                  <Calendar className="w-4 h-4" /> Hukuki Takvim
                 </Link>
                 <button onClick={handleShare} className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg w-full">
                   <Share2 className="w-4 h-4" /> Paylaş & Kazan
