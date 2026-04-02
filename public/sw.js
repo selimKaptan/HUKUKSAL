@@ -1,10 +1,11 @@
-const CACHE_NAME = "justiceguard-v1";
+const CACHE_NAME = "haklarim-v2";
 const OFFLINE_URL = "/offline";
 
 const PRECACHE_URLS = [
   "/",
   "/dashboard",
   "/offline",
+  "/manifest.json",
 ];
 
 // Install - precache critical resources
@@ -65,5 +66,36 @@ self.addEventListener("fetch", (event) => {
 
         return new Response("Offline", { status: 503 });
       })
+  );
+});
+
+// Push notification
+self.addEventListener("push", (event) => {
+  const data = event.data ? event.data.json() : {};
+  const title = data.title || "Haklarım";
+  const options = {
+    body: data.body || "Yeni bir bildiriminiz var",
+    icon: "/icons/icon-192x192.svg",
+    badge: "/icons/icon-192x192.svg",
+    tag: data.tag || "default",
+    data: { url: data.url || "/" },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Notification click
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window" }).then((clients) => {
+      for (const client of clients) {
+        if ("focus" in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(url);
+    })
   );
 });
