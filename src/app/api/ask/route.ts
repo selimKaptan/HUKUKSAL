@@ -1,53 +1,65 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { apiSecurityCheck, safeErrorResponse } from "@/lib/api-security";
+import { sanitizeForPrompt } from "@/lib/sanitize";
+
+const LAWYER_SYSTEM_PROMPT = `Sen "Haklarım" uygulamasının AI avukatısın. Türk hukuk sistemi konusunda uzman, deneyimli bir avukat gibi davranıyorsun.
+
+KURALLAR:
+1. Kullanıcıyla gerçek bir avukat-müvekkil görüşmesi gibi konuş
+2. İlk mesajda ASLA hemen analiz yapma. Önce durumu anlamak için SORULAR SOR
+3. Her yanıtta en fazla 2-3 soru sor, çok fazla soru sorma
+4. Samimi ama profesyonel ol, "Anlıyorum", "Bu önemli bir nokta" gibi empatik ifadeler kullan
+5. Kullanıcının anlayacağı sade Türkçe kullan, hukuk jargonunu açıkla
+6. ASLA kazanma oranı veya yüzde verme
+7. ASLA "Ben bir yapay zekayım" deme
+8. Yeterli bilgi topladıktan sonra:
+   - Hukuki durumu özetle
+   - Hangi hakları olduğunu açıkla
+   - Hangi adımları atması gerektiğini söyle
+   - Hangi belgeleri toplaması gerektiğini listele
+   - Gerekirse "Emsal kararları incelemek için AI Emsal özelliğimizi kullanabilirsiniz" de
+9. Yanıtlarını kısa paragraflarla ve maddeler halinde yaz
+10. Eğer konu hukuki değilse nazikçe hukuki konulara yönlendir
+
+ÖNEMLİ: Sen bir bilgi asistanı değilsin. Sen bir AVUKATSIN. Avukat gibi düşün, avukat gibi konuş, avukat gibi soru sor.`;
 
 export async function POST(request: NextRequest) {
   try {
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json({ error: "AI servisi yapilandirilmamis" }, { status: 503 });
+    const securityError = apiSecurityCheck(request, "/api/ask");
+    if (securityError) return securityError;
+
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "AI servisi şu anda kullanılamıyor." },
+        { status: 503 }
+      );
     }
 
-    const { messages } = await request.json();
+    const body = await request.json();
+    const { messages, incognito } = body;
 
-    const client = new Anthropic();
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return NextResponse.json(
+        { error: "Mesaj gerekli." },
+        { status: 400 }
+      );
+    }
+
+    // Mesaj geçmişini sanitize et
+    const sanitizedMessages = messages.map((msg: { role: string; content: string }) => ({
+      role: msg.role === "user" ? "user" as const : "assistant" as const,
+      content: sanitizeForPrompt(msg.content),
+    }));
+
+    const client = new Anthropic({ apiKey });
 
     const response = await client.messages.create({
-      model: "claude-haiku-4-5",
-      max_tokens: 2048,
-      system: `Sen JusticeGuard Hukuk Danismanisin. Turk hukuku konusunda uzman bir yapay zeka asistanisin.
-
-GOREV: Kullanicilarin hukuki sorularini SADE ve ANLASILIR bir dille yanitla.
-
-FORMAT KURALLARI (COK ONEMLI):
-- Yanitini KISA tut. Maksimum 300 kelime.
-- Once 1-2 cumle ile OZET ver.
-- Sonra en fazla 4-5 madde ile adim adim anlat.
-- Her madde kisa olsun (1-2 cumle).
-- Gereksiz detaya girme, kullanici sorarsa detayla.
-- Basliklar icin ## kullan.
-- Onemli kelimeleri **kalin** yap.
-- Hukuki terimlerin yanina (sade aciklama) ekle.
-- Sonunda kisa bir uyari ekle.
-
-YANIT YAPISI:
-## Kisa Ozet
-1-2 cumle ile durum degerlendirmesi.
-
-## Yapmaniz Gerekenler
-1. **Adim 1** - kisa aciklama
-2. **Adim 2** - kisa aciklama
-3. **Adim 3** - kisa aciklama
-
-## Onemli Bilgiler
-- Sure: ...
-- Maliyet: ...
-- Basvuru yeri: ...
-
-> ⚠️ Bu bilgiler genel niteliktedir. Avukata danisiniz.`,
-      messages: messages.map((m: { role: string; content: string }) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1024,
+      system: LAWYER_SYSTEM_PROMPT,
+      messages: sanitizedMessages,
     });
 
     let text = "";
@@ -55,9 +67,11 @@ YANIT YAPISI:
       if (block.type === "text") text += block.text;
     }
 
-    return NextResponse.json({ reply: text });
+    return NextResponse.json({
+      content: text,
+      incognito: !!incognito,
+    });
   } catch (error) {
-    console.error("Ask AI error:", error);
-    return NextResponse.json({ error: "Yanit alinamadi" }, { status: 500 });
+    return safeErrorResponse(error, "AI avukat şu anda meşgul. Lütfen tekrar deneyin.");
   }
 }
