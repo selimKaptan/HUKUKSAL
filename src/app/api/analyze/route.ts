@@ -212,9 +212,7 @@ export async function POST(request: NextRequest) {
       echrDecisions: echrDecisions.slice(0, 3),
       danistayDecisions: danistayDecisions.slice(0, 3),
       relatedLaws,
-    };
-
-    return NextResponse.json(response);
+    });
   } catch (error) {
     return safeErrorResponse(error, "Analiz sırasında bir hata oluştu. Lütfen tekrar deneyin.");
   }
