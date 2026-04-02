@@ -1,35 +1,24 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Scale, Send, Menu, X, MessageCircle, History,
-  Calculator, Clock, UserSearch, BookOpen, Banknote,
-  Settings, Crown, ChevronRight, Sparkles, User,
-  FileText, Flame,
+  Scale, Send, Mic, MicOff, X, Crown, ChevronRight,
+  EyeOff, User, FileText, Sparkles,
+  Shield,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { getTodaysTip, updateStreak } from "@/lib/daily-tips";
 import { getUserPlan, canDoAnalysis, incrementAnalysisCount } from "@/lib/feature-gate";
 import { trackEvent, EVENTS } from "@/lib/analytics";
 
-// Örnek sorular
-const SUGGESTIONS = [
-  "İşten haksız çıkarıldım, haklarım neler?",
-  "Ev sahibim kiramı artırmak istiyor",
-  "İnternetten aldığım ürün bozuk çıktı",
-  "Trafik kazasında haklarım neler?",
-  "Boşanma davası açmak istiyorum",
-  "Komşum gürültü yapıyor, ne yapabilirim?",
-];
+type AppMode = "normal" | "incognito" | "lawyer";
 
 interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
-  timestamp: Date;
 }
 
 export default function AppChat() {
@@ -39,178 +28,178 @@ export default function AppChat() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [streak, setStreak] = useState(0);
+  const [mode, setMode] = useState<AppMode>("normal");
+  const [isListening, setIsListening] = useState(false);
+  const [showModeSelector, setShowModeSelector] = useState(false);
+  const [showProPage, setShowProPage] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const tip = getTodaysTip();
-
-  useEffect(() => {
-    const s = updateStreak();
-    setStreak(s.currentStreak);
-    inputRef.current?.focus();
-  }, []);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  // Speech Recognition
+  const startListening = useCallback(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) return;
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = "tr-TR";
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((r: any) => r[0].transcript)
+        .join("");
+      setInput(transcript);
+    };
+
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+
+    recognition.start();
+    recognitionRef.current = recognition;
+    setIsListening(true);
+  }, []);
+
+  const stopListening = useCallback(() => {
+    recognitionRef.current?.stop();
+    setIsListening(false);
+  }, []);
+
   const handleSend = async (text?: string) => {
     const question = (text || input).trim();
     if (!question || loading) return;
 
-    // Analiz limiti kontrolü
     const status = canDoAnalysis(plan);
     if (!status.allowed) {
-      router.push("/pricing");
+      setShowProPage(true);
       return;
     }
 
     setInput("");
     trackEvent(EVENTS.ANALYSIS_STARTED);
 
-    const userMsg: ChatMessage = {
-      id: `u_${Date.now()}`,
-      role: "user",
-      content: question,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev) => [...prev, { id: `u_${Date.now()}`, role: "user", content: question }]);
     setLoading(true);
 
     try {
+      // Mod'a göre farklı sistem prompt'u
+      const systemContext = mode === "lawyer"
+        ? "AI_LAWYER_MODE"
+        : mode === "incognito"
+        ? "INCOGNITO_MODE"
+        : "NORMAL_MODE";
+
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventSummary: question,
           category: "diger",
-          additionalNotes: "",
+          additionalNotes: systemContext,
         }),
       });
 
-      if (!response.ok) throw new Error("Analiz hatası");
+      if (!response.ok) throw new Error("Hata");
       const result = await response.json();
       incrementAnalysisCount();
       trackEvent(EVENTS.ANALYSIS_COMPLETED);
 
-      // Sonucu formatlı mesaj olarak göster
-      const analysisText = formatAnalysisResult(result);
+      const aiText = formatResult(result, mode);
+      setMessages((prev) => [...prev, { id: `a_${Date.now()}`, role: "assistant", content: aiText }]);
 
-      const aiMsg: ChatMessage = {
-        id: `a_${Date.now()}`,
-        role: "assistant",
-        content: analysisText,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiMsg]);
-
-      // Detaylı sonucu sessionStorage'a kaydet
-      sessionStorage.setItem("analysisResult", JSON.stringify({
-        result,
-        caseTitle: question.slice(0, 50),
-        category: result.category || "diger",
-      }));
+      // Sonucu kaydet (gizli modda kaydetme)
+      if (mode !== "incognito") {
+        sessionStorage.setItem("analysisResult", JSON.stringify({
+          result, caseTitle: question.slice(0, 50), category: "diger",
+        }));
+      }
     } catch {
-      const errorMsg: ChatMessage = {
-        id: `e_${Date.now()}`,
-        role: "assistant",
-        content: "Üzgünüm, bir hata oluştu. Lütfen tekrar deneyin.",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMsg]);
+      setMessages((prev) => [...prev, { id: `e_${Date.now()}`, role: "assistant", content: "Bir hata oluştu. Lütfen tekrar deneyin." }]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
-  const isEmptyChat = messages.length === 0;
+  const analysisStatus = canDoAnalysis(plan);
+  const isEmpty = messages.length === 0;
+
+  const modeConfig = {
+    normal: { label: "Haklarım", icon: Scale, color: "text-blue-600", bg: "bg-blue-50" },
+    incognito: { label: "Gizli Mod", icon: EyeOff, color: "text-slate-600", bg: "bg-slate-800" },
+    lawyer: { label: "AI Avukat", icon: Shield, color: "text-emerald-600", bg: "bg-emerald-50" },
+  };
+
+  const currentMode = modeConfig[mode];
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-[#f5f4ef]">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 safe-area-top">
-        <button onClick={() => setSidebarOpen(true)} className="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center shadow-sm">
-          <Menu className="w-5 h-5 text-slate-600" />
-        </button>
+    <div className={`h-[100dvh] flex flex-col ${mode === "incognito" ? "bg-slate-900" : "bg-[#f5f4ef]"}`}>
 
-        <div className="text-center">
-          <h1 className="text-base font-bold text-slate-800">Haklarım</h1>
-          <p className="text-[11px] text-slate-400">AI Hukuk Asistanı</p>
-        </div>
+      {/* Header - Perplexity Style */}
+      <header className="flex items-center justify-between px-4 pt-2 pb-1 safe-area-top">
+        {/* Sol: Logo/Menü */}
+        <Link href="/dashboard" className="w-10 h-10 rounded-full bg-white/90 shadow-sm flex items-center justify-center">
+          <span className="text-base font-black text-slate-800">H</span>
+        </Link>
 
-        <Link href={user ? "/settings" : "/auth/login"} className="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center shadow-sm">
+        {/* Orta: Pro butonu */}
+        {plan !== "pro" && (
+          <button
+            onClick={() => setShowProPage(true)}
+            className="flex items-center gap-1.5 bg-white/90 shadow-sm rounded-full px-4 py-2"
+          >
+            <span className="text-sm font-semibold text-slate-700">Pro&apos;ya geç</span>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </button>
+        )}
+        {plan === "pro" && (
+          <div className="flex items-center gap-1.5 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full px-4 py-2">
+            <Crown className="w-3.5 h-3.5 text-white" />
+            <span className="text-sm font-semibold text-white">Pro</span>
+          </div>
+        )}
+
+        {/* Sağ: Profil */}
+        <Link href={user ? "/settings" : "/auth/login"} className="w-10 h-10 rounded-full bg-white/90 shadow-sm flex items-center justify-center overflow-hidden">
           {user ? (
-            <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-              <span className="text-[10px] font-bold text-white">{(user.name || user.email)[0].toUpperCase()}</span>
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+              <span className="text-xs font-bold text-white">{(user.name || user.email)[0].toUpperCase()}</span>
             </div>
           ) : (
-            <User className="w-5 h-5 text-slate-600" />
+            <User className="w-5 h-5 text-slate-500" />
           )}
         </Link>
       </header>
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto px-4">
-        {isEmptyChat ? (
-          /* Empty State - Claude Style */
-          <div className="flex flex-col items-center justify-center h-full -mt-10">
+        {isEmpty ? (
+          /* Empty State - Perplexity Style */
+          <div className="flex flex-col items-center justify-center h-full -mt-16">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
+              className="text-center"
             >
-              <div className="w-14 h-14 flex items-center justify-center mb-6 mx-auto">
-                <Scale className="w-10 h-10 text-blue-600/70" />
-              </div>
-
-              <h2 className="text-2xl font-bold text-slate-800 text-center mb-2">
-                Hukuki sorununuzu anlatın
+              <h2 className={`text-3xl font-bold mb-8 ${mode === "incognito" ? "text-white" : "text-slate-800"}`}>
+                Haklarım
               </h2>
-              <p className="text-sm text-slate-400 text-center mb-10 max-w-xs mx-auto">
-                Haklarınızı öğrenin, emsal kararları görün
-              </p>
-            </motion.div>
-
-            {/* Suggestion Chips */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="w-full max-w-md space-y-2"
-            >
-              {SUGGESTIONS.slice(0, 4).map((suggestion, i) => (
-                <motion.button
-                  key={suggestion}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + i * 0.08 }}
-                  onClick={() => handleSend(suggestion)}
-                  className="w-full text-left px-4 py-3 bg-white/70 hover:bg-white rounded-2xl text-sm text-slate-600 hover:text-slate-900 transition-all border border-slate-200/50 hover:border-slate-300 hover:shadow-sm"
-                >
-                  {suggestion}
-                </motion.button>
-              ))}
-            </motion.div>
-
-            {/* Günlük ipucu */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.7 }}
-              className="mt-8 max-w-md w-full"
-            >
-              <div className="bg-amber-50/80 border border-amber-200/50 rounded-2xl px-4 py-3">
-                <p className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider mb-1">Günün İpucu</p>
-                <p className="text-xs text-slate-600 leading-relaxed">{tip.content}</p>
-              </div>
             </motion.div>
           </div>
         ) : (
@@ -224,17 +213,15 @@ export default function AppChat() {
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 {msg.role === "assistant" && (
-                  <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center mr-2 mt-1 flex-shrink-0">
-                    <Scale className="w-4 h-4 text-blue-600" />
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center mr-2 mt-1 flex-shrink-0 ${mode === "incognito" ? "bg-slate-700" : "bg-blue-100"}`}>
+                    <Scale className={`w-4 h-4 ${mode === "incognito" ? "text-slate-300" : "text-blue-600"}`} />
                   </div>
                 )}
-                <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                    msg.role === "user"
-                      ? "bg-blue-600 text-white rounded-br-md"
-                      : "bg-white text-slate-800 rounded-bl-md shadow-sm border border-slate-100"
-                  }`}
-                >
+                <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                  msg.role === "user"
+                    ? mode === "incognito" ? "bg-slate-700 text-white rounded-br-md" : "bg-blue-600 text-white rounded-br-md"
+                    : mode === "incognito" ? "bg-slate-800 text-slate-200 rounded-bl-md border border-slate-700" : "bg-white text-slate-800 rounded-bl-md shadow-sm border border-slate-100"
+                }`}>
                   <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                 </div>
               </motion.div>
@@ -242,132 +229,206 @@ export default function AppChat() {
 
             {loading && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-start">
-                <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center mr-2 mt-1 flex-shrink-0">
-                  <Scale className="w-4 h-4 text-blue-600" />
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center mr-2 mt-1 ${mode === "incognito" ? "bg-slate-700" : "bg-blue-100"}`}>
+                  <Scale className={`w-4 h-4 ${mode === "incognito" ? "text-slate-300" : "text-blue-600"}`} />
                 </div>
-                <div className="bg-white rounded-2xl rounded-bl-md px-4 py-3 shadow-sm border border-slate-100">
+                <div className={`rounded-2xl rounded-bl-md px-4 py-3 ${mode === "incognito" ? "bg-slate-800 border border-slate-700" : "bg-white shadow-sm border border-slate-100"}`}>
                   <div className="flex gap-1.5">
                     {[0, 1, 2].map((i) => (
-                      <motion.div
-                        key={i}
-                        className="w-2 h-2 bg-blue-400 rounded-full"
-                        animate={{ y: [0, -6, 0] }}
-                        transition={{ duration: 0.5, delay: i * 0.12, repeat: Infinity }}
-                      />
+                      <motion.div key={i} className={`w-2 h-2 rounded-full ${mode === "incognito" ? "bg-slate-500" : "bg-blue-400"}`}
+                        animate={{ y: [0, -6, 0] }} transition={{ duration: 0.5, delay: i * 0.12, repeat: Infinity }} />
                     ))}
                   </div>
                 </div>
               </motion.div>
             )}
 
-            {/* Detaylı sonuç butonu */}
-            {messages.length > 0 && !loading && messages[messages.length - 1].role === "assistant" && (
+            {!loading && messages.length > 0 && messages[messages.length - 1].role === "assistant" && mode !== "incognito" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center pt-2">
-                <button
-                  onClick={() => router.push("/results")}
-                  className="text-xs text-blue-600 font-semibold flex items-center gap-1 hover:underline"
-                >
+                <button onClick={() => router.push("/results")} className="text-xs text-blue-600 font-semibold flex items-center gap-1 hover:underline">
                   <FileText className="w-3.5 h-3.5" /> Detaylı raporu görüntüle
                 </button>
               </motion.div>
             )}
-
             <div ref={messagesEndRef} />
           </div>
         )}
       </div>
 
-      {/* Input Area */}
-      <div className="px-4 pb-4 safe-area-bottom">
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 px-4 py-3">
+      {/* Input Area - Perplexity Style */}
+      <div className="px-4 pb-3 safe-area-bottom">
+        <div className={`rounded-2xl shadow-lg px-4 py-3 ${mode === "incognito" ? "bg-slate-800 border border-slate-700" : "bg-white border border-slate-200/50"}`}>
           <textarea
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Hukuki sorununuzu yazın..."
+            placeholder={mode === "lawyer" ? "Avukatınıza sorun..." : mode === "incognito" ? "Gizli soru sorun..." : "Hukuki sorununuzu yazın..."}
             rows={1}
-            className="w-full text-sm text-slate-800 placeholder:text-slate-400 outline-none resize-none bg-transparent max-h-32"
-            style={{ minHeight: "24px" }}
+            className={`w-full text-sm outline-none resize-none bg-transparent max-h-24 ${mode === "incognito" ? "text-white placeholder:text-slate-500" : "text-slate-800 placeholder:text-slate-400"}`}
           />
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-2">
-              {streak > 0 && (
-                <span className="flex items-center gap-1 text-[10px] text-orange-500 font-semibold">
-                  <Flame className="w-3 h-3" /> {streak} gün
-                </span>
-              )}
+              {/* Mod Selector */}
+              <button
+                onClick={() => setShowModeSelector(!showModeSelector)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                  mode === "incognito" ? "bg-slate-700 text-slate-300" :
+                  mode === "lawyer" ? "bg-emerald-100 text-emerald-700" :
+                  "bg-slate-100 text-slate-600"
+                }`}
+              >
+                <currentMode.icon className="w-3.5 h-3.5" />
+                {currentMode.label}
+              </button>
+
+              {/* Analiz hakkı */}
               {plan !== "pro" && (
-                <span className="text-[10px] text-slate-400">
-                  {canDoAnalysis(plan).remaining} analiz hakkı
+                <span className={`text-[10px] ${mode === "incognito" ? "text-slate-500" : "text-slate-400"}`}>
+                  {analysisStatus.remaining} hak
                 </span>
               )}
             </div>
-            <button
-              onClick={() => handleSend()}
-              disabled={!input.trim() || loading}
-              className="w-9 h-9 rounded-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 flex items-center justify-center transition-colors"
-            >
-              <Send className="w-4 h-4 text-white" />
-            </button>
+
+            <div className="flex items-center gap-2">
+              {/* Ses butonu */}
+              <button
+                onClick={isListening ? stopListening : startListening}
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                  isListening
+                    ? "bg-red-500 text-white animate-pulse"
+                    : mode === "incognito" ? "bg-slate-700 text-slate-400" : "bg-slate-100 text-slate-500"
+                }`}
+              >
+                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </button>
+
+              {/* Gönder */}
+              <button
+                onClick={() => handleSend()}
+                disabled={!input.trim() || loading}
+                className="w-9 h-9 rounded-full bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 flex items-center justify-center transition-colors"
+              >
+                <Send className="w-4 h-4 text-white" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Sidebar */}
+      {/* Mode Selector Dropdown */}
       <AnimatePresence>
-        {sidebarOpen && (
+        {showModeSelector && (
           <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40" onClick={() => setShowModeSelector(false)} />
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/30 z-50"
-              onClick={() => setSidebarOpen(false)}
-            />
-            <motion.div
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed top-0 left-0 bottom-0 w-72 bg-white z-50 shadow-2xl safe-area-left"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="fixed bottom-24 left-4 right-4 z-50 bg-white rounded-2xl shadow-2xl border border-slate-200 p-2"
             >
-              <div className="flex items-center justify-between p-4 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <Scale className="w-6 h-6 text-blue-600" />
-                  <span className="text-lg font-black text-slate-900">Haklarım</span>
+              <ModeButton
+                icon={<Scale className="w-5 h-5 text-blue-600" />}
+                label="Normal"
+                desc="Standart hukuki analiz"
+                active={mode === "normal"}
+                onClick={() => { setMode("normal"); setShowModeSelector(false); setMessages([]); }}
+              />
+              <ModeButton
+                icon={<EyeOff className="w-5 h-5 text-slate-600" />}
+                label="Gizli Mod"
+                desc="Geçmiş kaydedilmez"
+                active={mode === "incognito"}
+                onClick={() => { setMode("incognito"); setShowModeSelector(false); setMessages([]); }}
+              />
+              <ModeButton
+                icon={<Shield className="w-5 h-5 text-emerald-600" />}
+                label="AI Avukat"
+                desc="Avukat gibi konuşan AI"
+                active={mode === "lawyer"}
+                pro={plan !== "pro"}
+                onClick={() => {
+                  if (plan !== "pro") { setShowProPage(true); setShowModeSelector(false); return; }
+                  setMode("lawyer"); setShowModeSelector(false); setMessages([]);
+                }}
+              />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Pro Page - Perplexity Style Bottom Sheet */}
+      <AnimatePresence>
+        {showProPage && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 z-50" onClick={() => setShowProPage(false)} />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl max-h-[85vh] overflow-y-auto safe-area-bottom"
+            >
+              <div className="p-6">
+                {/* Handle */}
+                <div className="w-10 h-1 bg-slate-300 rounded-full mx-auto mb-4" />
+
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <button onClick={() => setShowProPage(false)} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
+                    <X className="w-5 h-5 text-slate-600" />
+                  </button>
+                  <button className="text-sm font-semibold text-slate-500">Geri Yükle</button>
                 </div>
-                <button onClick={() => setSidebarOpen(false)} className="p-1">
-                  <X className="w-5 h-5 text-slate-400" />
+
+                <h2 className="text-2xl font-bold text-slate-900 text-center mb-4">
+                  Tüm haklar cebinizde
+                </h2>
+
+                {/* Feature Table */}
+                <div className="bg-slate-50 rounded-2xl p-5 mb-6">
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    <span className="text-sm font-semibold text-slate-700">Özellikler</span>
+                    <span className="text-sm text-slate-400 text-center">Ücretsiz</span>
+                    <span className="text-sm font-bold text-teal-600 text-center">Pro</span>
+                  </div>
+
+                  <ProFeatureRow label="Dava Analizi" free="3/ay" pro />
+                  <ProFeatureRow label="Emsal Kararlar" free pro />
+                  <ProFeatureRow label="Hukuk Araçları" free pro />
+                  <ProFeatureRow label="AI Avukat Modu" pro />
+                  <ProFeatureRow label="PDF Rapor İndirme" pro />
+                  <ProFeatureRow label="Belge Analizi (OCR)" pro />
+                  <ProFeatureRow label="Sınırsız Analiz" pro />
+                  <ProFeatureRow label="Öncelikli Destek" pro />
+                </div>
+
+                {/* Price Cards */}
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  <div className="border-2 border-teal-500 rounded-2xl p-4 relative">
+                    <div className="absolute -top-2.5 left-3 bg-teal-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">-33%</div>
+                    <p className="text-xs text-slate-500">Yıllık</p>
+                    <p className="text-2xl font-black text-slate-900">₺99<span className="text-sm font-normal text-slate-400">/ay</span></p>
+                    <p className="text-[10px] text-slate-400">₺1.199/yıl</p>
+                  </div>
+                  <div className="border-2 border-slate-200 rounded-2xl p-4">
+                    <p className="text-xs text-slate-500">Aylık</p>
+                    <p className="text-2xl font-black text-slate-900">₺149<span className="text-sm font-normal text-slate-400">/ay</span></p>
+                    <p className="text-[10px] text-slate-400">₺1.788/yıl</p>
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <button className="w-full bg-teal-600 hover:bg-teal-700 text-white text-base font-bold py-4 rounded-2xl transition-colors">
+                  Pro&apos;ya geç
                 </button>
+
+                <p className="text-[10px] text-slate-400 text-center mt-3">
+                  App Store üzerinden satın alınır. İstediğiniz zaman iptal edebilirsiniz.
+                </p>
               </div>
-
-              <nav className="p-3 space-y-1">
-                <SidebarLink icon={<MessageCircle className="w-4 h-4" />} label="Yeni Soru" href="/" onClick={() => { setMessages([]); setSidebarOpen(false); }} />
-                <SidebarLink icon={<Sparkles className="w-4 h-4" />} label="Dava Analizi" href="/dashboard" onClick={() => setSidebarOpen(false)} />
-                <SidebarLink icon={<History className="w-4 h-4" />} label="Geçmiş" href="/history" onClick={() => setSidebarOpen(false)} />
-                <SidebarLink icon={<MessageCircle className="w-4 h-4" />} label="Mesajlar" href="/messages" onClick={() => setSidebarOpen(false)} />
-
-                <div className="border-t border-slate-100 my-3" />
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3 mb-2">Araçlar</p>
-                <SidebarLink icon={<UserSearch className="w-4 h-4" />} label="Avukat Bul" href="/tools/find-lawyer" onClick={() => setSidebarOpen(false)} />
-                <SidebarLink icon={<Calculator className="w-4 h-4" />} label="Arabuluculuk" href="/tools/mediation" onClick={() => setSidebarOpen(false)} />
-                <SidebarLink icon={<Clock className="w-4 h-4" />} label="Zamanaşımı" href="/tools/statute-of-limitations" onClick={() => setSidebarOpen(false)} />
-                <SidebarLink icon={<Banknote className="w-4 h-4" />} label="Harç Hesaplama" href="/tools/court-fees" onClick={() => setSidebarOpen(false)} />
-                <SidebarLink icon={<BookOpen className="w-4 h-4" />} label="Hukuk Sözlüğü" href="/tools/glossary" onClick={() => setSidebarOpen(false)} />
-
-                <div className="border-t border-slate-100 my-3" />
-                {plan !== "pro" && (
-                  <Link href="/pricing" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200">
-                    <Crown className="w-4 h-4 text-indigo-600" />
-                    <span className="text-sm font-semibold text-indigo-700">Pro&apos;ya Geç</span>
-                    <ChevronRight className="w-4 h-4 text-indigo-400 ml-auto" />
-                  </Link>
-                )}
-                {user && (
-                  <SidebarLink icon={<Settings className="w-4 h-4" />} label="Ayarlar" href="/settings" onClick={() => setSidebarOpen(false)} />
-                )}
-              </nav>
             </motion.div>
           </>
         )}
@@ -376,24 +437,46 @@ export default function AppChat() {
   );
 }
 
-function SidebarLink({ icon, label, href, onClick }: { icon: React.ReactNode; label: string; href: string; onClick?: () => void }) {
+function ModeButton({ icon, label, desc, active, pro, onClick }: {
+  icon: React.ReactNode; label: string; desc: string; active?: boolean; pro?: boolean; onClick: () => void;
+}) {
   return (
-    <Link href={href} onClick={onClick} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
-      {icon}
-      {label}
-    </Link>
+    <button onClick={onClick} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors ${active ? "bg-slate-100" : "hover:bg-slate-50"}`}>
+      <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">{icon}</div>
+      <div className="text-left flex-1">
+        <p className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+          {label}
+          {pro && <span className="text-[10px] bg-gradient-to-r from-teal-500 to-emerald-500 text-white px-1.5 py-0.5 rounded-full font-bold">PRO</span>}
+        </p>
+        <p className="text-xs text-slate-400">{desc}</p>
+      </div>
+      {active && <div className="w-2 h-2 bg-teal-500 rounded-full" />}
+    </button>
   );
 }
 
-function formatAnalysisResult(result: {
-  winProbability?: number;
-  strengths?: string[];
-  weaknesses?: string[];
-  recommendation?: string;
-  suggestedActions?: string[];
-  analysisReport?: string;
-}): string {
+function ProFeatureRow({ label, free, pro }: { label: string; free?: boolean | string; pro?: boolean }) {
+  return (
+    <div className="grid grid-cols-3 gap-2 py-2.5 border-t border-slate-200">
+      <span className="text-sm text-slate-700">{label}</span>
+      <div className="flex justify-center">
+        {free === true ? <Sparkles className="w-4 h-4 text-slate-400" /> :
+         typeof free === "string" ? <span className="text-xs text-slate-400">{free}</span> :
+         <span className="text-slate-300">—</span>}
+      </div>
+      <div className="flex justify-center">
+        {pro ? <Sparkles className="w-4 h-4 text-teal-500" /> : <span className="text-slate-300">—</span>}
+      </div>
+    </div>
+  );
+}
+
+function formatResult(result: { winProbability?: number; strengths?: string[]; weaknesses?: string[]; recommendation?: string; suggestedActions?: string[]; analysisReport?: string }, mode: AppMode): string {
   const lines: string[] = [];
+
+  if (mode === "lawyer") {
+    lines.push("Sayın müvekkilim,\n");
+  }
 
   if (result.winProbability !== undefined) {
     const emoji = result.winProbability >= 65 ? "🟢" : result.winProbability >= 40 ? "🟡" : "🔴";
@@ -401,29 +484,36 @@ function formatAnalysisResult(result: {
   }
 
   if (result.strengths?.length) {
-    lines.push("Güçlü Yanlarınız:");
+    lines.push(mode === "lawyer" ? "Lehinize olan hususlar:" : "Güçlü Yanlarınız:");
     result.strengths.forEach((s) => lines.push(`  + ${s}`));
     lines.push("");
   }
 
   if (result.weaknesses?.length) {
-    lines.push("Zayıf Yanlar:");
+    lines.push(mode === "lawyer" ? "Aleyhte değerlendirilecek hususlar:" : "Zayıf Yanlar:");
     result.weaknesses.forEach((w) => lines.push(`  - ${w}`));
     lines.push("");
   }
 
   if (result.suggestedActions?.length) {
-    lines.push("Önerilen Adımlar:");
+    lines.push(mode === "lawyer" ? "Hukuki tavsiyelerim:" : "Önerilen Adımlar:");
     result.suggestedActions.forEach((a, i) => lines.push(`  ${i + 1}. ${a}`));
     lines.push("");
   }
 
   if (result.recommendation) {
-    const rec = result.recommendation === "file_case" ? "Dava açmanız önerilir."
-      : result.recommendation === "do_not_file" ? "Dava açmanız önerilmez."
-      : "Bir avukata danışmanız önerilir.";
-    lines.push(`Sonuç: ${rec}`);
+    const rec = result.recommendation === "file_case"
+      ? mode === "lawyer" ? "Dava açmanızı tavsiye ederim." : "Dava açmanız önerilir."
+      : result.recommendation === "do_not_file"
+      ? mode === "lawyer" ? "Bu aşamada dava açmanızı tavsiye etmem." : "Dava açmanız önerilmez."
+      : mode === "lawyer" ? "Detaylı bir görüşme yaparak stratejimizi belirleyelim." : "Bir avukata danışmanız önerilir.";
+    lines.push(`\n${rec}`);
+  }
+
+  if (mode === "lawyer") {
+    lines.push("\nSaygılarımla,\nHaklarım AI Avukat");
   }
 
   return lines.join("\n") || (result.analysisReport || "Analiz tamamlandı.");
 }
+
