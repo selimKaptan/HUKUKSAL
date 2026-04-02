@@ -1,23 +1,41 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Scale, ArrowLeft, Search, Star, MapPin, Briefcase, Phone, Mail, MessageCircle, BadgeCheck, Users } from "lucide-react";
+import { Scale, ArrowLeft, Search, Star, MapPin, Briefcase, Phone, Mail, MessageCircle, BadgeCheck, Users, Send } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CASE_CATEGORY_LABELS, type CaseCategory } from "@/types/database";
 import { findLawyers, type Lawyer } from "@/lib/lawyer-data";
-import { getRegisteredLawyers, type User } from "@/lib/auth-context";
+import { getRegisteredLawyers, useAuth, type User } from "@/lib/auth-context";
+import { createConversation } from "@/lib/chat-service";
 
 const CITIES = ["İstanbul", "Ankara", "İzmir", "Bursa", "Antalya", "Adana", "Konya", "Gaziantep", "Kocaeli", "Mersin"];
 
 export default function FindLawyerPage() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [category, setCategory] = useState<CaseCategory | "">("");
   const [city, setCity] = useState("");
   const [results, setResults] = useState<{ type: "registered" | "sample"; data: User | Lawyer }[]>([]);
   const [searched, setSearched] = useState(false);
+
+  const handleMessageLawyer = async (lawyer: User) => {
+    if (!user) {
+      router.push("/auth/login");
+      return;
+    }
+    await createConversation(
+      user.id,
+      user.name || "Müvekkil",
+      lawyer.id,
+      lawyer.name || "Avukat"
+    );
+    router.push("/messages");
+  };
 
   const handleSearch = () => {
     const combined: { type: "registered" | "sample"; data: User | Lawyer }[] = [];
@@ -139,6 +157,13 @@ export default function FindLawyerPage() {
                                   <Badge variant="default" className="gap-1"><MessageCircle className="w-3 h-3" /> {p.consultationFee}</Badge>
                                   {p.phone && <span className="flex items-center gap-1 text-xs text-slate-500"><Phone className="w-3.5 h-3.5" /> {p.phone}</span>}
                                   <span className="flex items-center gap-1 text-xs text-slate-500"><Mail className="w-3.5 h-3.5" /> {lawyer.email}</span>
+                                  <Button
+                                    size="sm"
+                                    className="ml-auto gap-1 bg-emerald-600 hover:bg-emerald-700"
+                                    onClick={(e) => { e.stopPropagation(); handleMessageLawyer(lawyer); }}
+                                  >
+                                    <Send className="w-3.5 h-3.5" /> Mesaj Gönder
+                                  </Button>
                                 </div>
                               </div>
                             </div>

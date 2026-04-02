@@ -7,6 +7,7 @@ import {
   Scale, Users, FileText, TrendingUp, Shield, Trash2,
   BarChart3, Activity, Sparkles, Cpu, Clock,
   UserCheck, UserX, ChevronDown, ChevronUp, RefreshCw,
+  ShieldCheck, ShieldAlert, CheckCircle2, XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -19,8 +20,12 @@ import {
   type AdminStats,
 } from "@/lib/admin-service";
 import { CASE_CATEGORY_LABELS, type CaseCategory } from "@/types/database";
+import {
+  getPendingVerifications,
+  updateVerificationStatus,
+} from "@/lib/lawyer-verification";
 
-type TabType = "overview" | "users" | "cases";
+type TabType = "overview" | "users" | "cases" | "verification";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -28,6 +33,8 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [expandedCase, setExpandedCase] = useState<string | null>(null);
+  const [pendingLawyers, setPendingLawyers] = useState<{ id: string; name: string; email: string; baroSicilNo: string; barAssociation: string; city: string }[]>([]);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -36,11 +43,26 @@ export default function AdminDashboard() {
     }
     if (user && isAdmin) {
       setStats(getAdminStats());
+      loadPendingVerifications();
     }
   }, [user, loading, isAdmin, router]);
 
+  const loadPendingVerifications = async () => {
+    const pending = await getPendingVerifications();
+    setPendingLawyers(pending);
+  };
+
   const refreshStats = () => {
     setStats(getAdminStats());
+    loadPendingVerifications();
+  };
+
+  const handleVerifyLawyer = async (lawyerId: string, status: "verified" | "rejected") => {
+    setVerifyingId(lawyerId);
+    const note = status === "rejected" ? prompt("Red sebebi (opsiyonel):") || undefined : undefined;
+    await updateVerificationStatus(lawyerId, status, note);
+    setPendingLawyers((prev) => prev.filter((l) => l.id !== lawyerId));
+    setVerifyingId(null);
   };
 
   const handleDeleteUser = (userId: string, userName: string) => {
@@ -164,6 +186,7 @@ export default function AdminDashboard() {
             { id: "overview" as TabType, label: "Genel Bakış", icon: <BarChart3 className="w-4 h-4" /> },
             { id: "users" as TabType, label: `Kullanıcılar (${stats.totalUsers})`, icon: <Users className="w-4 h-4" /> },
             { id: "cases" as TabType, label: `Analizler (${stats.totalCases})`, icon: <FileText className="w-4 h-4" /> },
+            { id: "verification" as TabType, label: `Doğrulama (${pendingLawyers.length})`, icon: <ShieldCheck className="w-4 h-4" /> },
           ].map((tab) => (
             <Button
               key={tab.id}
@@ -298,6 +321,75 @@ export default function AdminDashboard() {
                     <p className="text-slate-500 text-center py-8">Henüz kayıtlı kullanıcı yok</p>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {activeTab === "verification" && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                  Avukat Doğrulama Başvuruları
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {pendingLawyers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <ShieldCheck className="w-12 h-12 text-emerald-500/30 mx-auto mb-3" />
+                    <p className="text-slate-500">Bekleyen doğrulama başvurusu yok</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {pendingLawyers.map((lawyer) => (
+                      <div key={lawyer.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center flex-shrink-0">
+                              <ShieldAlert className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-bold text-white">{lawyer.name}</h3>
+                              <p className="text-xs text-slate-400">{lawyer.email}</p>
+                              <div className="flex items-center gap-3 mt-2 flex-wrap">
+                                <Badge variant="outline" className="text-xs text-slate-300 gap-1">
+                                  <ShieldCheck className="w-3 h-3" /> Sicil: {lawyer.baroSicilNo}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs text-slate-300">
+                                  {lawyer.barAssociation}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs text-slate-300">
+                                  {lawyer.city}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <Button
+                              size="sm"
+                              className="bg-emerald-600 hover:bg-emerald-700 gap-1"
+                              disabled={verifyingId === lawyer.id}
+                              onClick={() => handleVerifyLawyer(lawyer.id, "verified")}
+                            >
+                              <CheckCircle2 className="w-4 h-4" /> Onayla
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-400 border-red-400/30 hover:bg-red-500/10 gap-1"
+                              disabled={verifyingId === lawyer.id}
+                              onClick={() => handleVerifyLawyer(lawyer.id, "rejected")}
+                            >
+                              <XCircle className="w-4 h-4" /> Reddet
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>

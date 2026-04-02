@@ -73,9 +73,10 @@ export default function ChatPage() {
   }, [user, authLoading, router]);
 
   // Load conversations
-  const loadConversations = useCallback(() => {
+  const loadConversations = useCallback(async () => {
     if (!user) return;
-    setConversations(getConversationsByUser(user.id));
+    const convs = await getConversationsByUser(user.id);
+    setConversations(convs);
   }, [user]);
 
   useEffect(() => {
@@ -88,19 +89,22 @@ export default function ChatPage() {
   // Load messages when conversation selected
   useEffect(() => {
     if (!selectedConvId || !user) return;
-    const msgs = getMessages(selectedConvId);
-    setMessages(msgs);
-    markAsRead(selectedConvId, user.id);
-    loadConversations();
+    const loadMsgs = async () => {
+      const msgs = await getMessages(selectedConvId);
+      setMessages(msgs);
+      await markAsRead(selectedConvId, user.id);
+      loadConversations();
+    };
+    loadMsgs();
   }, [selectedConvId, user, loadConversations]);
 
   // Poll messages for active conversation
   useEffect(() => {
     if (!selectedConvId || !user) return;
-    const interval = setInterval(() => {
-      const msgs = getMessages(selectedConvId);
+    const interval = setInterval(async () => {
+      const msgs = await getMessages(selectedConvId);
       setMessages(msgs);
-      markAsRead(selectedConvId, user.id);
+      await markAsRead(selectedConvId, user.id);
     }, 2000);
     return () => clearInterval(interval);
   }, [selectedConvId, user]);
@@ -134,16 +138,12 @@ export default function ChatPage() {
   };
 
   const getUnreadForConv = (conv: Conversation) => {
-    if (!user) return 0;
-    const convMessages = getMessages(conv.id);
-    return convMessages.filter(
-      (m) => m.senderId !== user.id && !m.read
-    ).length;
+    return conv.unreadCount || 0;
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!messageText.trim() || !selectedConvId || !user) return;
-    sendMessage(
+    await sendMessage(
       selectedConvId,
       user.id,
       user.name || user.email,
@@ -152,7 +152,8 @@ export default function ChatPage() {
     );
     setMessageText("");
     // Refresh messages
-    setMessages(getMessages(selectedConvId));
+    const msgs = await getMessages(selectedConvId);
+    setMessages(msgs);
     loadConversations();
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -166,9 +167,9 @@ export default function ChatPage() {
     }
   };
 
-  const handleStartConversation = (lawyer: AuthUser) => {
+  const handleStartConversation = async (lawyer: AuthUser) => {
     if (!user) return;
-    const conv = createConversation(
+    const conv = await createConversation(
       user.id,
       user.name || user.email,
       lawyer.id,

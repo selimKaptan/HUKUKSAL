@@ -75,7 +75,7 @@ export function Navbar() {
                     <Link href="/tools/case-tracker" className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50" onClick={() => setMenuOpen(false)}>
                       <Bell className="w-4 h-4" /> Dava Takip
                     </Link>
-                    <Link href="/chat" className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50" onClick={() => setMenuOpen(false)}>
+                    <Link href="/messages" className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50" onClick={() => setMenuOpen(false)}>
                       <MessageSquare className="w-4 h-4" /> Mesajlar
                     </Link>
                     <div className="md:hidden border-t border-slate-100 mt-1 pt-1">
