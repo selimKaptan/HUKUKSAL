@@ -4,11 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Scale, Mail, Lock, User, ArrowRight, Loader2, Briefcase, MapPin, Phone, Clock } from "lucide-react";
+import { Scale, Mail, Lock, User, ArrowRight, Loader2, Briefcase, MapPin, Phone, Clock, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth, type LawyerProfile } from "@/lib/auth-context";
 import { CASE_CATEGORY_LABELS, type CaseCategory } from "@/types/database";
 import { cn } from "@/lib/utils";
+import { validateBaroSicilNo, isBaroSicilNoTaken, saveVerificationInfo } from "@/lib/lawyer-verification";
 
 const CITIES = ["İstanbul", "Ankara", "İzmir", "Bursa", "Antalya", "Adana", "Konya", "Gaziantep", "Kocaeli", "Mersin", "Diyarbakır", "Kayseri", "Eskişehir", "Trabzon", "Samsun"];
 const BAR_ASSOCIATIONS = CITIES.map((c) => `${c} Barosu`);
@@ -35,6 +36,7 @@ export default function LawyerRegisterPage() {
   const [about, setAbout] = useState("");
   const [consultationFee, setConsultationFee] = useState("");
   const [languages, setLanguages] = useState("Türkçe");
+  const [baroSicilNo, setBaroSicilNo] = useState("");
 
   const toggleSpecialty = (cat: CaseCategory) => {
     setSpecialties((prev) =>
@@ -55,6 +57,15 @@ export default function LawyerRegisterPage() {
     if (specialties.length === 0) { setError("En az bir uzmanlık alanı seçin."); return; }
     if (!barAssociation || !city) { setError("Baro ve şehir bilgisi zorunludur."); return; }
 
+    // Baro sicil no doğrulama
+    if (baroSicilNo) {
+      const sicilValidation = validateBaroSicilNo(baroSicilNo);
+      if (!sicilValidation.valid) { setError(sicilValidation.error!); return; }
+
+      const taken = await isBaroSicilNoTaken(baroSicilNo);
+      if (taken) { setError("Bu baro sicil numarası zaten kayıtlı."); return; }
+    }
+
     setLoading(true);
 
     const lawyerProfile: LawyerProfile = {
@@ -74,6 +85,15 @@ export default function LawyerRegisterPage() {
       setError(result.error);
       setLoading(false);
     } else {
+      // Baro sicil no varsa doğrulama kaydı oluştur
+      if (baroSicilNo) {
+        try {
+          const user = JSON.parse(localStorage.getItem("jg_user") || "{}");
+          if (user.id) {
+            await saveVerificationInfo(user.id, baroSicilNo);
+          }
+        } catch { /* ignore */ }
+      }
       router.push("/lawyer/dashboard");
     }
   };
@@ -87,7 +107,7 @@ export default function LawyerRegisterPage() {
               <Scale className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-black text-slate-900 tracking-tight">
-              Justice<span className="text-emerald-600">Guard</span>
+              Haklarım
               <span className="text-sm font-medium text-slate-400 ml-2">Avukat</span>
             </span>
           </Link>
@@ -173,11 +193,26 @@ export default function LawyerRegisterPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700">Telefon</label>
-                  <div className="relative">
-                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+90 5XX XXX XX XX" className="w-full h-12 pl-11 pr-4 rounded-xl border-2 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 outline-none transition-all" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-700">Telefon</label>
+                    <div className="relative">
+                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+90 5XX XXX XX XX" className="w-full h-12 pl-11 pr-4 rounded-xl border-2 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 outline-none transition-all" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-700 flex items-center gap-1">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" /> Baro Sicil No
+                    </label>
+                    <input
+                      type="text"
+                      value={baroSicilNo}
+                      onChange={(e) => setBaroSicilNo(e.target.value)}
+                      placeholder="Örn: 34-12345"
+                      className="w-full h-12 px-4 rounded-xl border-2 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 outline-none transition-all"
+                    />
+                    <p className="text-[10px] text-slate-400">Doğrulama için gerekli (İl kodu-Sicil no)</p>
                   </div>
                 </div>
 

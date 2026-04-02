@@ -87,7 +87,7 @@ export function PWAInstallPrompt() {
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
                 <h3 className="text-sm font-bold text-slate-900">
-                  JusticeGuard Uygulamasini Yukle
+                  Haklarım Uygulamasını Yükle
                 </h3>
                 <button onClick={handleDismiss} className="p-1 hover:bg-slate-100 rounded-lg">
                   <X className="w-4 h-4 text-slate-400" />

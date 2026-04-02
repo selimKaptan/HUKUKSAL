@@ -1,11 +1,11 @@
 /**
- * Input Sanitizasyonu - XSS koruması
+ * Input sanitization and validation utilities
  */
 
-// HTML tag'lerini temizle
-export function sanitizeHtml(input: string): string {
+// Tehlikeli HTML/script tag'lerini temizle
+export function sanitizeText(input: string): string {
+  if (!input) return "";
   return input
-    .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
@@ -13,39 +13,77 @@ export function sanitizeHtml(input: string): string {
     .replace(/\//g, "&#x2F;");
 }
 
-// Script injection'ı temizle
-export function sanitizeInput(input: string): string {
-  return input
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "")
-    .replace(/javascript\s*:/gi, "")
-    .replace(/data\s*:/gi, "")
-    .replace(/vbscript\s*:/gi, "")
-    .trim();
+// Prompt injection koruması - AI'a gönderilecek kullanıcı inputu temizle
+export function sanitizeForPrompt(input: string): string {
+  if (!input) return "";
+
+  // Prompt injection pattern'leri
+  const dangerousPatterns = [
+    /ignore\s+(all\s+)?previous\s+instructions/gi,
+    /ignore\s+(all\s+)?above/gi,
+    /disregard\s+(all\s+)?previous/gi,
+    /forget\s+(all\s+)?previous/gi,
+    /you\s+are\s+now/gi,
+    /act\s+as\s+if/gi,
+    /pretend\s+(to\s+be|you\s+are)/gi,
+    /override\s+(system|instructions)/gi,
+    /new\s+instructions?:/gi,
+    /system\s*prompt/gi,
+    /\[SYSTEM\]/gi,
+    /\[INST\]/gi,
+    /<\|.*?\|>/g,
+    /```\s*(system|assistant)/gi,
+  ];
+
+  let cleaned = input;
+  for (const pattern of dangerousPatterns) {
+    cleaned = cleaned.replace(pattern, "[FILTERED]");
+  }
+
+  // Maksimum uzunluk sınırı
+  return cleaned.slice(0, 10000);
 }
 
-// SQL injection'a karşı temizle
-export function sanitizeForDB(input: string): string {
-  return input
-    .replace(/['";\\]/g, "")
-    .replace(/--/g, "")
-    .replace(/\/\*/g, "")
-    .replace(/\*\//g, "")
-    .trim();
+// Kategori whitelist doğrulaması
+const VALID_CATEGORIES = [
+  "is_hukuku", "aile_hukuku", "ticaret_hukuku", "ceza_hukuku",
+  "tuketici_hukuku", "kira_hukuku", "miras_hukuku", "idare_hukuku",
+  "icra_iflas", "diger",
+];
+
+export function isValidCategory(category: string): boolean {
+  return VALID_CATEGORIES.includes(category);
 }
 
-// E-posta validasyonu
-export function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+// Tarih format doğrulaması (DD/MM/YYYY)
+export function isValidDate(date: string): boolean {
+  if (!date) return true; // Optional field
+  return /^\d{2}\/\d{2}\/\d{4}$/.test(date);
 }
 
-// Telefon validasyonu (Türkiye)
-export function isValidPhone(phone: string): boolean {
-  const cleaned = phone.replace(/[\s\-\(\)]/g, "");
-  return /^(\+90|0)?[5][0-9]{9}$/.test(cleaned);
-}
-
-// Genel form input temizleme
-export function cleanFormInput(input: string, maxLength: number = 5000): string {
-  return sanitizeInput(input).substring(0, maxLength);
+// Genel input doğrulama
+export function validateAnalysisInput(body: {
+  eventSummary?: string;
+  category?: string;
+  additionalNotes?: string;
+}): { valid: boolean; error?: string } {
+  if (!body.eventSummary || typeof body.eventSummary !== "string") {
+    return { valid: false, error: "Olay özeti gereklidir." };
+  }
+  if (body.eventSummary.length < 20) {
+    return { valid: false, error: "Olay özeti en az 20 karakter olmalıdır." };
+  }
+  if (body.eventSummary.length > 10000) {
+    return { valid: false, error: "Olay özeti en fazla 10000 karakter olabilir." };
+  }
+  if (!body.category || !isValidCategory(body.category)) {
+    return { valid: false, error: "Geçerli bir kategori seçiniz." };
+  }
+  if (body.additionalNotes && typeof body.additionalNotes !== "string") {
+    return { valid: false, error: "Ek notlar metin formatında olmalıdır." };
+  }
+  if (body.additionalNotes && body.additionalNotes.length > 5000) {
+    return { valid: false, error: "Ek notlar en fazla 5000 karakter olabilir." };
+  }
+  return { valid: true };
 }

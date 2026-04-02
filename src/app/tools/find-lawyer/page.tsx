@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Scale, ArrowLeft, Search, Star, MapPin, Briefcase, Phone, Mail, MessageCircle, BadgeCheck, Users, Send, Check } from "lucide-react";
+import { Scale, ArrowLeft, Search, Star, MapPin, Briefcase, Phone, Mail, MessageCircle, BadgeCheck, Users, Send } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -11,13 +12,13 @@ import { Badge } from "@/components/ui/badge";
 import { CASE_CATEGORY_LABELS, type CaseCategory } from "@/types/database";
 import { findLawyers, type Lawyer } from "@/lib/lawyer-data";
 import { getRegisteredLawyers, useAuth, type User } from "@/lib/auth-context";
-import { sendMessage } from "@/lib/messaging";
+import { createConversation } from "@/lib/chat-service";
 
 const CITIES = ["İstanbul", "Ankara", "İzmir", "Bursa", "Antalya", "Adana", "Konya", "Gaziantep", "Kocaeli", "Mersin"];
 
 export default function FindLawyerPage() {
-  const router = useRouter();
   const { user } = useAuth();
+  const router = useRouter();
   const [category, setCategory] = useState<CaseCategory | "">("");
   const [city, setCity] = useState("");
   const [results, setResults] = useState<{ type: "registered" | "sample"; data: User | Lawyer }[]>([]);
@@ -29,6 +30,20 @@ export default function FindLawyerPage() {
     sendMessage(user.id, user.name || "Müvekkil", user.role, lawyerId, lawyerName, "lawyer", `Merhaba ${lawyerName}, JusticeGuard üzerinden size ulaşıyorum. Hukuki konuda danışmanlık almak istiyorum.`);
     setMessageSent(lawyerId);
     setTimeout(() => setMessageSent(null), 3000);
+  };
+
+  const handleMessageLawyer = async (lawyer: User) => {
+    if (!user) {
+      router.push("/auth/login");
+      return;
+    }
+    await createConversation(
+      user.id,
+      user.name || "Müvekkil",
+      lawyer.id,
+      lawyer.name || "Avukat"
+    );
+    router.push("/messages");
   };
 
   const handleSearch = () => {
@@ -68,7 +83,7 @@ export default function FindLawyerPage() {
             <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
               <Scale className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-black text-slate-900 tracking-tight">Justice<span className="text-blue-600">Guard</span></span>
+            <span className="text-xl font-black text-slate-900 tracking-tight">Haklarım</span>
           </Link>
         </div>
       </header>
@@ -119,7 +134,7 @@ export default function FindLawyerPage() {
             {registeredCount > 0 && (
               <div className="mb-6">
                 <h2 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
-                  <BadgeCheck className="w-5 h-5 text-emerald-600" /> JusticeGuard Kayıtlı Avukatlar
+                  <BadgeCheck className="w-5 h-5 text-emerald-600" /> Haklarım Kayıtlı Avukatlar
                 </h2>
                 <div className="grid gap-4">
                   {results.filter((r) => r.type === "registered").map((r, index) => {
@@ -153,6 +168,14 @@ export default function FindLawyerPage() {
                                   </Button>
                                   <Badge variant="default" className="gap-1"><MessageCircle className="w-3 h-3" /> {p.consultationFee}</Badge>
                                   {p.phone && <span className="flex items-center gap-1 text-xs text-slate-500"><Phone className="w-3.5 h-3.5" /> {p.phone}</span>}
+                                  <span className="flex items-center gap-1 text-xs text-slate-500"><Mail className="w-3.5 h-3.5" /> {lawyer.email}</span>
+                                  <Button
+                                    size="sm"
+                                    className="ml-auto gap-1 bg-emerald-600 hover:bg-emerald-700"
+                                    onClick={(e) => { e.stopPropagation(); handleMessageLawyer(lawyer); }}
+                                  >
+                                    <Send className="w-3.5 h-3.5" /> Mesaj Gönder
+                                  </Button>
                                 </div>
                               </div>
                             </div>

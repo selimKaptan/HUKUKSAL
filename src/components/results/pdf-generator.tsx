@@ -119,10 +119,10 @@ export function PDFGenerator({ result, caseTitle, category }: PDFGeneratorProps)
 
     y += 10;
     addLine();
-    addText("Bu rapor JusticeGuard AI tarafindan olusturulmustur.", 8, "normal", [150, 150, 150]);
+    addText("Bu rapor Haklarım AI tarafindan olusturulmustur.", 8, "normal", [150, 150, 150]);
     addText("Kesin hukuki tavsiye niteliginde degildir. Profesyonel hukuki danismanlik almaniz tavsiye edilir.", 8, "normal", [150, 150, 150]);
 
-    doc.save(`JusticeGuard_Avukat_Dosyasi_${new Date().toISOString().slice(0, 10)}.pdf`);
+    doc.save(`Haklarim_Avukat_Dosyasi_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   return (
@@ -139,7 +139,7 @@ export function PDFGenerator({ result, caseTitle, category }: PDFGeneratorProps)
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `JusticeGuard_Rapor_${new Date().toISOString().slice(0, 10)}.md`;
+          a.download = `Haklarim_Rapor_${new Date().toISOString().slice(0, 10)}.md`;
           a.click();
           URL.revokeObjectURL(url);
         }}

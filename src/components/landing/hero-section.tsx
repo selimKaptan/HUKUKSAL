@@ -1,11 +1,66 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Scale, Shield, FileSearch, ArrowRight, MessageCircle, BookOpen, Users, HelpCircle, Gavel } from "lucide-react";
+import { Scale, Shield, FileSearch, ArrowRight, Sparkles, Lock, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useAuth } from "@/lib/auth-context";
+
+// Store URL'leri - Yayına alındığında gerçek linklerle değiştirilecek
+const APP_STORE_URL = "https://apps.apple.com/tr/app/haklarim";
+const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app.haklarim";
+
+function AppleIcon() {
+  return (
+    <svg viewBox="0 0 384 512" className="w-6 h-6 fill-current" aria-hidden="true">
+      <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5c0 26.2 4.8 53.3 14.4 81.2 12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-62.1 24-72.5-24 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z" />
+    </svg>
+  );
+}
+
+function GooglePlayIcon() {
+  return (
+    <svg viewBox="0 0 512 512" className="w-6 h-6 fill-current" aria-hidden="true">
+      <path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z" />
+    </svg>
+  );
+}
+
+function StoreButtons({ className = "" }: { className?: string }) {
+  return (
+    <div className={`flex flex-col sm:flex-row gap-3 justify-center items-center ${className}`}>
+      <a
+        href={APP_STORE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-3 bg-black hover:bg-gray-800 text-white rounded-xl px-6 py-3.5 transition-all hover:scale-[1.02] shadow-lg min-w-[180px]"
+      >
+        <AppleIcon />
+        <div className="text-left">
+          <div className="text-[10px] leading-none opacity-80">Download on the</div>
+          <div className="text-lg font-semibold leading-tight">App Store</div>
+        </div>
+      </a>
+      <a
+        href={PLAY_STORE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-3 bg-black hover:bg-gray-800 text-white rounded-xl px-6 py-3.5 transition-all hover:scale-[1.02] shadow-lg min-w-[180px]"
+      >
+        <GooglePlayIcon />
+        <div className="text-left">
+          <div className="text-[10px] leading-none opacity-80">GET IT ON</div>
+          <div className="text-lg font-semibold leading-tight">Google Play</div>
+        </div>
+      </a>
+    </div>
+  );
+}
+
+export { StoreButtons, APP_STORE_URL, PLAY_STORE_URL };
 
 export function HeroSection() {
+  const { user } = useAuth();
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="absolute inset-0 overflow-hidden">
@@ -38,25 +93,59 @@ export function HeroSection() {
           Ne yapmanız gerektiğini adım adım anlatalım.
         </motion.p>
 
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.3 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Link href="/ask">
-            <Button size="xl" className="group text-lg px-10">
-              <MessageCircle className="mr-2 w-5 h-5" />
-              Hemen Sorun
-              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </Link>
-          <Link href="/auth/register">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+          className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+        >
+          {user ? (
+            <Link href="/dashboard">
+              <Button size="xl" className="group text-lg px-10">
+                Analiz Başlat
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/auth/register">
+              <Button size="xl" className="group text-lg px-10">
+                Ücretsiz Üye Ol & Başla
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+          )}
+          <Link href={user ? "#features" : "/auth/login"}>
             <Button variant="outline" size="xl" className="text-lg">
-              Ücretsiz Kayıt Ol
+              {user ? "Nasıl Çalışır?" : (
+                <>
+                  <Lock className="mr-2 w-4 h-4" />
+                  Giriş Yap
+                </>
+              )}
             </Button>
           </Link>
         </motion.div>
 
-        {/* Ne Yapabilirsiniz */}
-        <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.5 }}
-          className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
+        {/* App Store Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          className="mt-10"
+        >
+          <p className="text-sm text-slate-500 mb-3 flex items-center justify-center gap-1.5">
+            <Smartphone className="w-4 h-4" /> Mobil uygulamamızı indirin
+          </p>
+          <StoreButtons />
+        </motion.div>
+
+        {/* Stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          className="mt-16 grid grid-cols-3 gap-8 max-w-2xl mx-auto"
+        >
           {[
             { icon: HelpCircle, text: "Sorunu Anlat" },
             { icon: Scale, text: "Haklarını Öğren" },
@@ -157,30 +246,36 @@ export function FeaturesSection() {
 }
 
 export function CTASection() {
+  const { user } = useAuth();
   return (
     <section className="py-24 bg-gradient-to-br from-blue-600 to-indigo-700">
       <div className="max-w-4xl mx-auto px-6 text-center">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-          <h2 className="text-4xl font-black text-white mb-6">Haklarınızı Öğrenmek Ücretsiz</h2>
-          <p className="text-xl text-blue-100 mb-4 max-w-2xl mx-auto">
-            Hukuk bilginiz olmasa da ne yapmanız gerektiğini adım adım anlatalım.
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+        >
+          <h2 className="text-4xl font-black text-white mb-6">
+            Hakkınızı Bilin, Bilinçli Adım Atın
+          </h2>
+          <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
+            {user
+              ? "Davanızı analiz edin, emsal kararlarla karşılaştırın ve avukatınıza hazırlıklı gidin."
+              : "Ücretsiz üye olun, davanızı analiz edin ve avukatınıza hazırlıklı gidin."}
           </p>
-          <p className="text-blue-200 mb-10 max-w-xl mx-auto">
-            Avukatlar bazen eksik bilgi verebilir. Kendi haklarınızı bilmek sizin en büyük güvenceniz.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/ask">
-              <Button size="xl" className="bg-white text-blue-700 hover:bg-blue-50 shadow-xl text-lg px-10 hover:scale-[1.02]">
-                <MessageCircle className="mr-2 w-5 h-5" />
-                Hemen Soru Sorun
-              </Button>
-            </Link>
-            <Link href="/blog">
-              <Button size="xl" className="border-2 border-white/30 text-white hover:bg-white/10 text-lg px-10">
-                <BookOpen className="mr-2 w-5 h-5" />
-                Hukuk Rehberleri
-              </Button>
-            </Link>
+          <Link href={user ? "/dashboard" : "/auth/register"}>
+            <Button
+              size="xl"
+              className="bg-white text-blue-700 hover:bg-blue-50 shadow-xl text-lg px-10 hover:scale-[1.02]"
+            >
+              {user ? "Hemen Başla" : "Ücretsiz Üye Ol"}
+              <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+          </Link>
+
+          <div className="mt-8">
+            <p className="text-sm text-blue-200 mb-3">Mobil uygulamayı indirin</p>
+            <StoreButtons />
           </div>
         </motion.div>
       </div>

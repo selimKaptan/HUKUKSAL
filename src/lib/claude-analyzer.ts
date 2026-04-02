@@ -4,7 +4,7 @@ import { CASE_CATEGORY_LABELS } from "@/types/database";
 
 const client = new Anthropic();
 
-const SYSTEM_PROMPT = `Sen JusticeGuard AI. Turk hukuku uzmanisin.
+const SYSTEM_PROMPT = `Sen Haklarım AI'sın — Türk hukuk sistemi konusunda uzman bir hukuki analiz asistanısın.
 
 GOREV: Olayi analiz et, TUM mahkemelerden emsal karar bul, rapor olustur.
 
@@ -16,18 +16,14 @@ KAYNAKLAR - asagidaki mahkemelerin kararlarini biliyorsun:
 - Bolge Adliye Mahkemeleri (istinaf)
 
 KURALLAR:
-- Kazanma olasiligi %15-%92
-- Guclu/zayif yanlari KISA yaz (her biri max 1 cumle)
-- 7 emsal karar bul:
-  * En az 4 Yargitay karari
-  * Varsa 1 Anayasa Mahkemesi karari
-  * Varsa 1 AIHM karari (Turkiye aleyhine)
-  * Davaci lehine 4-5, davali lehine 2-3 ideal
-- Karar numarasini kesin bilmiyorsan "Yerlesik Ictihat" yaz, UYDURMA
-- analysisReport KISA olsun (max 150 kelime)
-- Her emsal karar KISA ozet (max 1 cumle summary, max 1 cumle ruling)
-- court alaninda mahkeme turunu belirt (Yargitay/Danistay/AYM/AIHM)
-- JSON GECERLI olmali, string icinde tirnaksiz yaz
+1. Türk hukuku çerçevesinde analiz yap.
+2. Kazanma olasılığını %15-%92 arasında hesapla (hiçbir zaman %100 veya %0 verme).
+3. Güçlü ve zayıf yanları somut gerekçelerle belirt.
+4. Emsal kararları referans göstererek karşılaştırmalı analiz yap.
+5. "Dava aç", "Açma" veya "Avukata danış" şeklinde net tavsiye ver.
+6. Profesyonel ama anlaşılır bir dil kullan.
+7. Kesinlikle avukatlık hizmeti vermediğini belirt.
+8. Verilen emsal kararlardan en alakalı olanları seç ve relevance_score (0.0-1.0) ver.
 
 JSON FORMATI:
 {
@@ -35,22 +31,72 @@ JSON FORMATI:
   "strengths": ["kisa madde 1", "kisa madde 2"],
   "weaknesses": ["kisa madde 1"],
   "recommendation": "file_case" | "do_not_file" | "needs_review",
-  "analysisReport": "kisa rapor metni",
-  "riskFactors": ["risk 1"],
-  "suggestedActions": ["adim 1", "adim 2", "adim 3"],
-  "precedents": [
-    {
-      "court": "Yargitay X. Hukuk Dairesi",
-      "case_number": "2021/1234 E.",
-      "date": "2022",
-      "summary": "kisa ozet",
-      "ruling": "karar",
-      "outcome": "plaintiff_won",
-      "duration_days": 400,
-      "relevance_score": 0.8,
-      "keywords": ["kelime1", "kelime2"]
-    }
-  ]
+  "analysisReport": string (detaylı markdown rapor),
+  "riskFactors": string[] (risk faktörleri),
+  "suggestedActions": string[] (önerilen adımlar, en az 3),
+  "selectedPrecedentIndices": number[] (en alakalı emsal kararların indeks numaraları, 0'dan başlar, en fazla 5),
+  "precedentScores": number[] (seçilen her emsal için 0.0-1.0 arası benzerlik skoru)
+}`;
+
+interface IndexedPrecedent {
+  index: number;
+  source: "local" | "uyap";
+  localPrecedent?: (typeof PRECEDENTS_DB)[number];
+  uyapDecision?: UyapDecision;
+}
+
+function buildPrecedentContext(
+  category: CaseCategory,
+  uyapDecisions?: UyapDecision[]
+): { context: string; indexedPrecedents: IndexedPrecedent[] } {
+  const indexedPrecedents: IndexedPrecedent[] = [];
+  let globalIndex = 0;
+
+  // Yerel emsal kararlar
+  const localPrecedents = PRECEDENTS_DB.filter(
+    (p) => p.category === category
+  ).slice(0, 5);
+
+  let context = "## EMSAL KARAR VERİTABANI\nAşağıdaki kararları analiz et ve olaya en uygun olanları seç. selectedPrecedentIndices ile indeks numaralarını, precedentScores ile benzerlik skorlarını belirt.\n\n";
+
+  localPrecedents.forEach((p) => {
+    context += `### [İndeks ${globalIndex}] ${p.court} - ${p.case_number}\n`;
+    context += `Kaynak: Yerel DB\n`;
+    context += `Tarih: ${p.date}\n`;
+    context += `Özet: ${p.summary}\n`;
+    context += `Karar: ${p.ruling}\n`;
+    context += `Sonuç: ${p.outcome === "plaintiff_won" ? "Davacı Kazandı" : p.outcome === "defendant_won" ? "Davalı Kazandı" : "Uzlaşma/Red"}\n`;
+    context += `Anahtar Kelimeler: ${p.keywords.join(", ")}\n\n`;
+    indexedPrecedents.push({
+      index: globalIndex,
+      source: "local",
+      localPrecedent: p,
+    });
+    globalIndex++;
+  });
+
+  // UYAP emsal kararlar
+  if (uyapDecisions && uyapDecisions.length > 0) {
+    context += "\n## UYAP EMSAL KARARLARI (emsal.uyap.gov.tr - Resmi Kaynak)\n\n";
+    uyapDecisions.forEach((d) => {
+      context += `### [İndeks ${globalIndex}] ${d.mahkeme}\n`;
+      context += `Kaynak: UYAP Resmi\n`;
+      context += `Esas No: ${d.esas_no}\n`;
+      context += `Karar No: ${d.karar_no}\n`;
+      context += `Tarih: ${d.karar_tarihi}\n`;
+      if (d.ozet) context += `Özet: ${d.ozet}\n`;
+      if (d.metin) context += `Metin (kısaltılmış): ${d.metin.substring(0, 500)}\n`;
+      context += "\n";
+      indexedPrecedents.push({
+        index: globalIndex,
+        source: "uyap",
+        uyapDecision: d,
+      });
+      globalIndex++;
+    });
+  }
+
+  return { context, indexedPrecedents };
 }
 
 SADECE JSON ver. Baska metin EKLEME.`;
@@ -60,13 +106,26 @@ export async function analyzeCaseWithClaude(
   category: CaseCategory,
   additionalNotes?: string
 ): Promise<AnalysisResult & { matchedPrecedents: (Precedent & { relevance_score: number })[] }> {
+  const { context: precedentContext, indexedPrecedents } = buildPrecedentContext(category, uyapDecisions);
   const categoryLabel = CASE_CATEGORY_LABELS[category];
 
   const userMessage = `Kategori: ${categoryLabel}
 Olay: ${eventSummary}
 ${additionalNotes ? `Ek: ${additionalNotes}` : ""}
 
-JSON olarak analiz et.`;
+**Kategori:** ${categoryLabel}
+**Olay Özeti:**
+${eventSummary}
+
+${additionalNotes ? `**Ek Notlar:**\n${additionalNotes}\n` : ""}
+
+${precedentContext}
+
+---
+
+Yukarıdaki olay özetini ve emsal kararları analiz ederek JSON formatında hukuki analiz raporu oluştur.
+Emsal kararlardan bu davaya EN UYGUN olanları seç. selectedPrecedentIndices alanına seçtiğin kararların [İndeks X] numaralarını, precedentScores alanına da her biri için 0.0-1.0 arası benzerlik skorunu yaz.
+Yanıtını SADECE geçerli JSON olarak ver, başka metin ekleme.`;
 
   const response = await client.messages.create({
     model: "claude-haiku-4-5",
@@ -89,49 +148,100 @@ JSON olarak analiz et.`;
   if (jsonText.endsWith("```")) jsonText = jsonText.slice(0, -3);
   jsonText = jsonText.trim();
 
-  // JSON parse - kesik JSON'u düzeltmeye çalış
+  // Güvenli JSON parse - AI bazen bozuk JSON döndürebilir
   let analysis;
   try {
     analysis = JSON.parse(jsonText);
-  } catch {
-    // JSON kesikse, kapanmamış string ve parantezleri kapat
-    let fixed = jsonText;
-    // Kapanmamış string'i kapat
-    const quoteCount = (fixed.match(/"/g) || []).length;
-    if (quoteCount % 2 !== 0) fixed += '"';
-    // Kapanmamış array'leri kapat
-    const openBrackets = (fixed.match(/\[/g) || []).length;
-    const closeBrackets = (fixed.match(/\]/g) || []).length;
-    for (let i = 0; i < openBrackets - closeBrackets; i++) fixed += "]";
-    // Kapanmamış object'leri kapat
-    const openBraces = (fixed.match(/\{/g) || []).length;
-    const closeBraces = (fixed.match(/\}/g) || []).length;
-    for (let i = 0; i < openBraces - closeBraces; i++) fixed += "}";
-
+  } catch (parseError) {
+    console.error("Claude JSON parse error, attempting repair:", parseError);
+    // JSON'u onarmayı dene - yaygın hatalar
     try {
-      analysis = JSON.parse(fixed);
+      // Trailing comma kaldır
+      const repaired = jsonText
+        .replace(/,\s*}/g, "}")
+        .replace(/,\s*]/g, "]")
+        // Tek tırnak -> çift tırnak
+        .replace(/'/g, '"')
+        // Kontrol karakterlerini temizle
+        .replace(/[\x00-\x1F\x7F]/g, (c) => c === "\n" || c === "\t" ? c : "");
+      analysis = JSON.parse(repaired);
     } catch {
-      // Hala parse edilemiyorsa, temel yapıyı döndür
-      throw new Error("Claude JSON parse hatasi: " + jsonText.substring(0, 200));
+      // Hala parse edilemiyorsa, regex ile temel alanları çıkar
+      console.error("JSON repair failed, extracting fields manually");
+      const winMatch = jsonText.match(/"winProbability"\s*:\s*(\d+)/);
+      const recMatch = jsonText.match(/"recommendation"\s*:\s*"([^"]+)"/);
+      analysis = {
+        winProbability: winMatch ? parseInt(winMatch[1]) : 50,
+        strengths: ["AI analizi tamamlandı ancak detaylı sonuçlar ayrıştırılamadı."],
+        weaknesses: ["Analiz sonuçları tam olarak işlenemedi, yeniden deneyiniz."],
+        recommendation: recMatch ? recMatch[1] : "needs_review",
+        analysisReport: jsonText.substring(0, 1000),
+        riskFactors: [],
+        suggestedActions: ["Analizi tekrar çalıştırın.", "Olay özetini daha detaylı yazın.", "Bir avukata danışın."],
+        selectedPrecedentIndices: [],
+        precedentScores: [],
+      };
     }
   }
 
-  const matchedPrecedents: (Precedent & { relevance_score: number })[] = (analysis.precedents || []).map(
-    (p: Record<string, unknown>, i: number) => ({
-      id: `claude_${i}`,
-      created_at: new Date().toISOString(),
-      court: (p.court as string) || "Yargitay",
-      case_number: (p.case_number as string) || "Yerlesik Ictihat",
-      date: (p.date as string) || "",
-      category,
-      summary: (p.summary as string) || "",
-      ruling: (p.ruling as string) || "",
-      keywords: (p.keywords as string[]) || [],
-      outcome: (p.outcome as string) || "plaintiff_won",
-      duration_days: (p.duration_days as number) || undefined,
-      relevance_score: (p.relevance_score as number) || Math.max(0.5, 0.9 - i * 0.15),
-    })
-  );
+  // AI'ın seçtiği emsal kararları kullan
+  const selectedIndices: number[] = analysis.selectedPrecedentIndices || [];
+  const precedentScores: number[] = analysis.precedentScores || [];
+
+  const matchedPrecedents: (Precedent & { relevance_score: number })[] = [];
+
+  if (selectedIndices.length > 0) {
+    // AI'ın seçtiği emsalleri kullan
+    selectedIndices.forEach((idx: number, i: number) => {
+      const indexed = indexedPrecedents.find((p) => p.index === idx);
+      if (!indexed) return;
+
+      const score = precedentScores[i] ?? 0.5;
+
+      if (indexed.source === "local" && indexed.localPrecedent) {
+        const p = indexed.localPrecedent;
+        matchedPrecedents.push({
+          ...p,
+          id: `local_${idx}`,
+          created_at: new Date().toISOString(),
+          relevance_score: Math.max(0.1, Math.min(1, score)),
+        });
+      } else if (indexed.source === "uyap" && indexed.uyapDecision) {
+        const d = indexed.uyapDecision;
+        matchedPrecedents.push({
+          id: `uyap_${idx}`,
+          case_number: d.esas_no || d.karar_no || `UYAP-${idx}`,
+          court: d.mahkeme || "Belirtilmemiş",
+          date: d.karar_tarihi || "",
+          summary: d.ozet || d.metin?.substring(0, 300) || "",
+          ruling: d.karar_no ? `Karar No: ${d.karar_no}` : "Karar bilgisi mevcut",
+          outcome: "plaintiff_won" as const,
+          category,
+          keywords: [],
+          created_at: new Date().toISOString(),
+          relevance_score: Math.max(0.1, Math.min(1, score)),
+        });
+      }
+    });
+  }
+
+  // AI hiç emsal seçemediyse, fallback olarak yerel DB'den al
+  if (matchedPrecedents.length === 0) {
+    const localPrecedents = PRECEDENTS_DB.filter(
+      (p) => p.category === category
+    ).slice(0, 3);
+    localPrecedents.forEach((p, i) => {
+      matchedPrecedents.push({
+        ...p,
+        id: `local_${i}`,
+        created_at: new Date().toISOString(),
+        relevance_score: Math.max(0.3, 0.8 - i * 0.15),
+      });
+    });
+  }
+
+  // Skora göre sırala
+  matchedPrecedents.sort((a, b) => b.relevance_score - a.relevance_score);
 
   return {
     winProbability: Math.max(15, Math.min(92, analysis.winProbability || 50)),

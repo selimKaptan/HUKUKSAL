@@ -4,7 +4,10 @@ import { createContext, useContext, useEffect, useState, useCallback } from "rea
 import { supabase, hasSupabase } from "./supabase";
 import type { CaseCategory } from "@/types/database";
 
-export type UserRole = "client" | "lawyer";
+export type UserRole = "client" | "lawyer" | "admin";
+
+// Admin e-posta adresleri - bu hesaplar sınırsız yetkiye sahip
+const ADMIN_EMAILS = ["selim@barbarosshipping.com"];
 
 export interface LawyerProfile {
   barAssociation: string;
@@ -30,6 +33,7 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isAdmin: boolean;
   signUp: (email: string, password: string, name: string, role: UserRole, lawyerProfile?: LawyerProfile) => Promise<{ error?: string }>;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
@@ -39,16 +43,18 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  isAdmin: false,
   signUp: async () => ({}),
   signIn: async () => ({}),
   signOut: async () => {},
   updateLawyerProfile: () => {},
 });
 
-function saveUserLocal(u: User | null) {
-  if (u) localStorage.setItem("jg_user", JSON.stringify(u));
-  else localStorage.removeItem("jg_user");
+export function checkIsAdmin(email?: string): boolean {
+  return !!email && ADMIN_EMAILS.includes(email.toLowerCase());
 }
+
+const hasSupabase = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -59,24 +65,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 1. LocalStorage'dan hızlı yükle (flash önleme)
     const stored = localStorage.getItem("jg_user");
     if (stored) {
-      try { setUser(JSON.parse(stored)); } catch { /* */ }
+      try {
+        const parsed = JSON.parse(stored);
+        // Admin kontrolü - her oturumda kontrol et
+        if (checkIsAdmin(parsed.email)) {
+          parsed.role = "admin";
+        }
+        setUser(parsed);
+      } catch {
+        localStorage.removeItem("jg_user");
+      }
     }
 
     // 2. Supabase session kontrol
     if (hasSupabase) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user) {
-          const u: User = {
-            id: session.user.id,
-            email: session.user.email || "",
-            name: session.user.user_metadata?.name,
-            role: session.user.user_metadata?.role || "client",
-            lawyerProfile: session.user.user_metadata?.lawyerProfile,
-          };
-          setUser(u);
-          saveUserLocal(u);
-        }
-        setLoading(false);
+      import("./supabase").then(({ supabase }) => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user) {
+            const email = session.user.email || "";
+            const u: User = {
+              id: session.user.id,
+              email,
+              name: session.user.user_metadata?.name,
+              role: checkIsAdmin(email) ? "admin" : (session.user.user_metadata?.role || "client"),
+              lawyerProfile: session.user.user_metadata?.lawyerProfile,
+            };
+            setUser(u);
+            localStorage.setItem("jg_user", JSON.stringify(u));
+          }
+          setLoading(false);
+        }).catch(() => setLoading(false));
       }).catch(() => setLoading(false));
 
       // Auth state değişikliklerini dinle
@@ -146,21 +164,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = useCallback(async (email: string, password: string) => {
     // Supabase Auth
     if (hasSupabase) {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (!error && data.user) {
-        const u: User = {
-          id: data.user.id,
-          email: data.user.email || email,
-          name: data.user.user_metadata?.name,
-          role: data.user.user_metadata?.role || "client",
-          lawyerProfile: data.user.user_metadata?.lawyerProfile,
-        };
-        setUser(u);
-        saveUserLocal(u);
-        return {};
-      }
-      // Supabase'de bulunamadıysa localStorage'a bak
+      try {
+        const { supabase } = await import("./supabase");
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (!error && data.user) {
+          const u: User = {
+            id: data.user.id,
+            email: data.user.email || email,
+            name: data.user.user_metadata?.name,
+            role: checkIsAdmin(email) ? "admin" : (data.user.user_metadata?.role || "client"),
+            lawyerProfile: data.user.user_metadata?.lawyerProfile,
+          };
+          setUser(u);
+          localStorage.setItem("jg_user", JSON.stringify(u));
+          return {};
+        }
+      } catch { /* fallback */ }
     }
 
     // localStorage fallback
@@ -168,9 +187,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const found = existingUsers.find((u) => u.email === email && u.password === password);
     if (!found) return { error: "E-posta veya şifre hatalı." };
 
-    const u: User = { id: found.id, email: found.email, name: found.name, role: found.role, lawyerProfile: found.lawyerProfile, created_at: found.created_at };
-    setUser(u);
-    saveUserLocal(u);
+    if (!found) {
+      return { error: "E-posta veya şifre hatalı." };
+    }
+
+    const userWithoutPassword: User = {
+      id: found.id, email: found.email, name: found.name,
+      role: checkIsAdmin(found.email) ? "admin" : found.role,
+      lawyerProfile: found.lawyerProfile, created_at: found.created_at,
+    };
+    setUser(userWithoutPassword);
+    localStorage.setItem("jg_user", JSON.stringify(userWithoutPassword));
     return {};
   }, []);
 
@@ -213,8 +240,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     saveLawyerToRegistry(updated);
   }, [user]);
 
+  const isAdmin = checkIsAdmin(user?.email);
+
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, updateLawyerProfile }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, signUp, signIn, signOut, updateLawyerProfile }}>
       {children}
     </AuthContext.Provider>
   );

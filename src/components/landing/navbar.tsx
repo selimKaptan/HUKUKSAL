@@ -1,13 +1,13 @@
 "use client";
 
-import { Scale, LogOut, History, Calculator, Clock, UserSearch, CreditCard } from "lucide-react";
+import { Scale, LogOut, History, Calculator, Clock, UserSearch, Banknote, BookOpen, Bell, MessageSquare, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 
 export function Navbar() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -18,7 +18,7 @@ export function Navbar() {
             <Scale className="w-5 h-5 text-white" />
           </div>
           <span className="text-xl font-black text-slate-900 tracking-tight">
-            Justice<span className="text-blue-600">Guard</span>
+            Haklarım
           </span>
         </Link>
 
@@ -38,6 +38,12 @@ export function Navbar() {
           </Link>
           <Link href="/tools/find-lawyer" className="px-3 py-2 text-sm text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1.5">
             <UserSearch className="w-3.5 h-3.5" /> Avukat Bul
+          </Link>
+          <Link href="/tools/court-fees" className="px-3 py-2 text-sm text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1.5">
+            <Banknote className="w-3.5 h-3.5" /> Harç
+          </Link>
+          <Link href="/tools/glossary" className="px-3 py-2 text-sm text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1.5">
+            <BookOpen className="w-3.5 h-3.5" /> Sözlük
           </Link>
         </div>
 
@@ -72,6 +78,12 @@ export function Navbar() {
                     <Link href="/history" className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50" onClick={() => setMenuOpen(false)}>
                       <History className="w-4 h-4" /> Dava Geçmişi
                     </Link>
+                    <Link href="/tools/case-tracker" className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50" onClick={() => setMenuOpen(false)}>
+                      <Bell className="w-4 h-4" /> Dava Takip
+                    </Link>
+                    <Link href="/messages" className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50" onClick={() => setMenuOpen(false)}>
+                      <MessageSquare className="w-4 h-4" /> Mesajlar
+                    </Link>
                     <div className="md:hidden border-t border-slate-100 mt-1 pt-1">
                       <Link href="/tools/mediation" className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50" onClick={() => setMenuOpen(false)}>
                         <Calculator className="w-4 h-4" /> Arabuluculuk
@@ -82,7 +94,20 @@ export function Navbar() {
                       <Link href="/tools/find-lawyer" className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50" onClick={() => setMenuOpen(false)}>
                         <UserSearch className="w-4 h-4" /> Avukat Bul
                       </Link>
+                      <Link href="/tools/court-fees" className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50" onClick={() => setMenuOpen(false)}>
+                        <Banknote className="w-4 h-4" /> Harç Hesapla
+                      </Link>
+                      <Link href="/tools/glossary" className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50" onClick={() => setMenuOpen(false)}>
+                        <BookOpen className="w-4 h-4" /> Hukuki Sözlük
+                      </Link>
                     </div>
+                    {isAdmin && (
+                      <div className="border-t border-slate-100 mt-1 pt-1">
+                        <Link href="/admin" className="flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 font-semibold hover:bg-red-50" onClick={() => setMenuOpen(false)}>
+                          <Shield className="w-4 h-4" /> Admin Paneli
+                        </Link>
+                      </div>
+                    )}
                     <div className="border-t border-slate-100 mt-1 pt-1">
                       <button
                         onClick={() => { signOut(); setMenuOpen(false); }}
@@ -100,8 +125,8 @@ export function Navbar() {
               <Link href="/auth/login">
                 <Button variant="ghost" size="sm">Giriş Yap</Button>
               </Link>
-              <Link href="/dashboard">
-                <Button size="sm">Analiz Başlat</Button>
+              <Link href="/auth/register">
+                <Button size="sm">Üye Ol</Button>
               </Link>
             </>
           )}
