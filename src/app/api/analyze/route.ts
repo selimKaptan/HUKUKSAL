@@ -3,6 +3,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import { analyzeCase } from "@/lib/analysis-engine";
 import { analyzeCaseWithClaude } from "@/lib/claude-analyzer";
 import { searchUyapPrecedents, getCategoryKeywords } from "@/lib/uyap-client";
+import { searchAYMDecisions } from "@/lib/aym-client";
+import { searchECHRDecisions } from "@/lib/echr-client";
+import { searchDanistayDecisions } from "@/lib/danistay-client";
+import { getRelatedLaws } from "@/lib/mevzuat-client";
 import { apiSecurityCheck, safeErrorResponse } from "@/lib/api-security";
 import { validateAnalysisInput, sanitizeForPrompt } from "@/lib/sanitize";
 import type { CaseCategory } from "@/types/database";
@@ -161,6 +165,21 @@ export async function POST(request: NextRequest) {
       uyapDecisions = await filterUyapWithAI(uyapDecisions, eventSummary, category);
     }
 
+    // 2.5 Çoklu mahkeme araması (paralel)
+    const mainKeyword = searchKeywords[0] || "dava";
+    const [aymResults, echrResults, danistayResults] = await Promise.allSettled([
+      searchAYMDecisions(mainKeyword).catch(() => []),
+      searchECHRDecisions(mainKeyword).catch(() => []),
+      category === "idare_hukuku" ? searchDanistayDecisions(mainKeyword).catch(() => []) : Promise.resolve([]),
+    ]);
+
+    const aymDecisions = aymResults.status === "fulfilled" ? aymResults.value : [];
+    const echrDecisions = echrResults.status === "fulfilled" ? echrResults.value : [];
+    const danistayDecisions = danistayResults.status === "fulfilled" ? danistayResults.value : [];
+
+    // İlgili mevzuat
+    const relatedLaws = getRelatedLaws(category);
+
     // 3. Claude AI ile analiz
     let analysisResult;
     if (hasClaudeKey) {
@@ -188,6 +207,11 @@ export async function POST(request: NextRequest) {
       uyapTotalCount,
       aiProvider: hasClaudeKey ? "claude" : "local",
       searchKeywords: hasClaudeKey ? searchKeywords : undefined,
+      // Çoklu mahkeme sonuçları
+      aymDecisions: aymDecisions.slice(0, 3),
+      echrDecisions: echrDecisions.slice(0, 3),
+      danistayDecisions: danistayDecisions.slice(0, 3),
+      relatedLaws,
     };
 
     return NextResponse.json(response);
