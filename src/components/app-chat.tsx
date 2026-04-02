@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Scale, Send, Mic, X, Crown, ChevronRight,
-  EyeOff, User, Sparkles, Search, Copy, Check,
-  UserSearch, Share2, BookOpen, Camera,
+  User, Sparkles, Search, Copy, Check,
+  UserSearch, Share2, BookOpen, Camera, FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
@@ -44,7 +44,7 @@ export default function AppChat() {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<AppMode>("lawyer");
   const [isListening, setIsListening] = useState(false);
-  const [showModeSelector, setShowModeSelector] = useState(false);
+  // showModeSelector removed - + button handles AI Emsal directly
   const [showProPage, setShowProPage] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [chatHistory, setChatHistory] = useState<SavedChat[]>([]);
@@ -327,26 +327,26 @@ export default function AppChat() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
-  const analysisStatus = canDoAnalysis(plan);
   const isEmpty = messages.length === 0;
 
-  const modeConfig = {
-    lawyer: { label: "AI Avukat", icon: Scale, desc: "Avukatınıza sorun" },
-    incognito: { label: "Gizli Mod", icon: EyeOff, desc: "Kayıt tutulmaz" },
-    emsal: { label: "AI Emsal", icon: Search, desc: "Emsal karar analizi" },
-  };
-
-  const current = modeConfig[mode];
 
   return (
     <div className={`h-[100dvh] flex flex-col ${mode === "incognito" ? "bg-slate-900" : "bg-[#f5f4ef]"}`}>
 
-      {/* Header */}
+      {/* Header - Perplexity Style */}
       <header className="flex items-center justify-between px-4 pt-2 pb-1 safe-area-top">
+        {/* Sol: H + Profil menüsü birleşik */}
         <button onClick={() => setShowHistory(true)} className="w-10 h-10 rounded-full bg-white/90 shadow-sm flex items-center justify-center">
-          <span className="text-base font-black text-slate-800">H</span>
+          {user ? (
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+              <span className="text-xs font-bold text-white">{(user.name || user.email)[0].toUpperCase()}</span>
+            </div>
+          ) : (
+            <span className="text-base font-black text-slate-800">H</span>
+          )}
         </button>
 
+        {/* Orta: Pro'ya geç */}
         {plan !== "pro" ? (
           <button onClick={() => setShowProPage(true)} className="flex items-center gap-1.5 bg-white/90 shadow-sm rounded-full px-4 py-2">
             <span className="text-sm font-semibold text-slate-700">Pro&apos;ya geç</span>
@@ -359,14 +359,9 @@ export default function AppChat() {
           </div>
         )}
 
-        <Link href={user ? "/settings" : "/auth/login"} className="w-10 h-10 rounded-full bg-white/90 shadow-sm flex items-center justify-center overflow-hidden">
-          {user ? (
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-              <span className="text-xs font-bold text-white">{(user.name || user.email)[0].toUpperCase()}</span>
-            </div>
-          ) : (
-            <User className="w-5 h-5 text-slate-500" />
-          )}
+        {/* Sağ: Dilekçelerim */}
+        <Link href="/dilekce" className="w-10 h-10 rounded-full bg-white/90 shadow-sm flex items-center justify-center">
+          <FileText className="w-5 h-5 text-slate-600" />
         </Link>
       </header>
 
@@ -494,22 +489,24 @@ export default function AppChat() {
           />
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-2">
+              {/* + butonu → AI Emsal */}
               <button
-                onClick={() => setShowModeSelector(!showModeSelector)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  mode === "incognito" ? "bg-slate-700 text-slate-300" :
-                  mode === "emsal" ? "bg-teal-100 text-teal-700" :
-                  "bg-slate-100 text-slate-600"
+                onClick={() => {
+                  if (mode === "emsal") { setMode("lawyer"); setMessages([]); }
+                  else {
+                    if (plan !== "pro") { setShowProPage(true); return; }
+                    setMode("emsal"); setMessages([]);
+                  }
+                }}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-lg font-light transition-all ${
+                  mode === "emsal" ? "bg-teal-500 text-white" : mode === "incognito" ? "bg-slate-700 text-slate-400" : "bg-slate-100 text-slate-500"
                 }`}
               >
-                <current.icon className="w-3.5 h-3.5" />
-                {current.label}
+                {mode === "emsal" ? <X className="w-4 h-4" /> : "+"}
               </button>
 
-              {mode === "emsal" && plan !== "pro" && (
-                <span className="text-[10px] text-slate-400">
-                  {analysisStatus.remaining} hak
-                </span>
+              {mode === "emsal" && (
+                <span className="text-xs font-semibold text-teal-600">AI Emsal</span>
               )}
             </div>
 
@@ -552,30 +549,7 @@ export default function AppChat() {
         </div>
       </div>
 
-      {/* Mode Selector */}
-      <AnimatePresence>
-        {showModeSelector && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40" onClick={() => setShowModeSelector(false)} />
-            <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-              className="fixed bottom-24 left-4 right-4 z-50 bg-white rounded-2xl shadow-2xl border border-slate-200 p-2"
-            >
-              <ModeBtn icon={<Scale className="w-5 h-5 text-blue-600" />} label="AI Avukat" desc="Avukatınız soru sorar, dinler, tavsiye verir"
-                active={mode === "lawyer"} onClick={() => { setMode("lawyer"); setShowModeSelector(false); setMessages([]); }} />
-              <ModeBtn icon={<EyeOff className="w-5 h-5 text-slate-600" />} label="Gizli Mod" desc="Sohbet geçmişi kaydedilmez"
-                active={mode === "incognito"} onClick={() => { setMode("incognito"); setShowModeSelector(false); setMessages([]); }} />
-              <ModeBtn icon={<Search className="w-5 h-5 text-teal-600" />} label="AI Emsal" desc="Emsal karar analizi + kazanma oranı"
-                active={mode === "emsal"} pro={plan !== "pro"}
-                onClick={() => {
-                  if (plan !== "pro") { setShowProPage(true); setShowModeSelector(false); return; }
-                  setMode("emsal"); setShowModeSelector(false); setMessages([]);
-                }} />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {/* Mode Selector kaldırıldı - + butonu direkt AI Emsal'a geçiyor */}
 
       {/* Pro Bottom Sheet */}
       <AnimatePresence>
@@ -681,8 +655,11 @@ export default function AppChat() {
                 )}
               </div>
 
-              {/* Araçlar */}
+              {/* Araçlar + Profil */}
               <div className="border-t border-slate-100 p-3 space-y-1">
+                <Link href="/dilekce" className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg" onClick={() => setShowHistory(false)}>
+                  <FileText className="w-4 h-4" /> Dilekçelerim
+                </Link>
                 <Link href="/tools/find-lawyer" className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg" onClick={() => setShowHistory(false)}>
                   <UserSearch className="w-4 h-4" /> Avukat Bul
                 </Link>
@@ -692,6 +669,11 @@ export default function AppChat() {
                 <button onClick={handleShare} className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg w-full">
                   <Share2 className="w-4 h-4" /> Paylaş & Kazan
                 </button>
+                <div className="border-t border-slate-100 mt-2 pt-2">
+                  <Link href={user ? "/settings" : "/auth/login"} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 rounded-lg" onClick={() => setShowHistory(false)}>
+                    <User className="w-4 h-4" /> {user ? "Profil & Ayarlar" : "Giriş Yap"}
+                  </Link>
+                </div>
               </div>
             </motion.div>
           </>
@@ -710,24 +692,6 @@ export default function AppChat() {
         )}
       </AnimatePresence>
     </div>
-  );
-}
-
-function ModeBtn({ icon, label, desc, active, pro, onClick }: {
-  icon: React.ReactNode; label: string; desc: string; active?: boolean; pro?: boolean; onClick: () => void;
-}) {
-  return (
-    <button onClick={onClick} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors ${active ? "bg-slate-100" : "hover:bg-slate-50"}`}>
-      <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">{icon}</div>
-      <div className="text-left flex-1">
-        <p className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-          {label}
-          {pro && <span className="text-[10px] bg-gradient-to-r from-teal-500 to-emerald-500 text-white px-1.5 py-0.5 rounded-full font-bold">PRO</span>}
-        </p>
-        <p className="text-xs text-slate-400">{desc}</p>
-      </div>
-      {active && <div className="w-2 h-2 bg-teal-500 rounded-full" />}
-    </button>
   );
 }
 

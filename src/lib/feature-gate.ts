@@ -66,8 +66,12 @@ export const USAGE_LIMITS = {
   },
 };
 
+// Admin e-postaları otomatik Pro
+const PRO_EMAILS = ["selim@barbarosshipping.com"];
+
 // Kullanıcının plan tipini belirle
 export function getUserPlan(user: { id?: string; email?: string; plan?: string } | null): PlanType {
+  if (user?.email && PRO_EMAILS.includes(user.email.toLowerCase())) return "pro";
   if (user?.plan === "pro") return "pro";
   return "free";
 }
