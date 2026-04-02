@@ -3,11 +3,12 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const viewport: Viewport = {
-  themeColor: "#4f46e5",
+  themeColor: "#f5f4ef",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
