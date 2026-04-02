@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { apiSecurityCheck, safeErrorResponse } from "@/lib/api-security";
 import { sanitizeForPrompt } from "@/lib/sanitize";
+import { findRelevantLawTexts, trimRagContext } from "@/lib/rag-engine";
 
 const LAWYER_SYSTEM_PROMPT = `Sen "Haklarım" uygulamasının AI avukatısın. Türk hukuk sistemi konusunda uzman, deneyimli bir avukat gibi davranıyorsun.
 
@@ -63,12 +64,17 @@ export async function POST(request: NextRequest) {
       content: sanitizeForPrompt(msg.content),
     }));
 
+    // RAG: İlgili kanun metinlerini bul ve prompt'a ekle
+    const lastUserMsg = sanitizedMessages.filter((m: { role: string }) => m.role === "user").pop();
+    const ragContext = lastUserMsg ? trimRagContext(findRelevantLawTexts(lastUserMsg.content)) : "";
+    const systemWithRag = LAWYER_SYSTEM_PROMPT + ragContext;
+
     const client = new Anthropic({ apiKey });
 
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1024,
-      system: LAWYER_SYSTEM_PROMPT,
+      system: systemWithRag,
       messages: sanitizedMessages,
     });
 

@@ -7,7 +7,7 @@ import {
   Scale, Send, Mic, X, Crown, ChevronRight,
   User, Sparkles, Search, Copy, Check,
   UserSearch, Share2, BookOpen, Camera, FileText,
-  Volume2, Calendar,
+  Volume2, Calendar, ThumbsUp, ThumbsDown, AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
@@ -15,6 +15,7 @@ import { getUserPlan, canDoAnalysis, incrementAnalysisCount } from "@/lib/featur
 import { trackEvent, EVENTS } from "@/lib/analytics";
 import { validateCitations, calculateConfidenceScore, type CitationValidation } from "@/lib/citation-validator";
 import { speak, stop, isSpeaking } from "@/lib/tts";
+import { detectHallucination, appendDisclaimer } from "@/lib/hallucination-detector";
 import { getChatHistory, saveChat, deleteChat, generateChatTitle, type SavedChat } from "@/lib/chat-history";
 import { getTodaysCase } from "@/lib/daily-cases";
 import { shareApp, recordShare } from "@/lib/referral";
@@ -39,6 +40,8 @@ interface ChatMessage {
   citations?: CitationValidation[];
   confidenceLabel?: string;
   confidenceColor?: string;
+  feedback?: "up" | "down";
+  hallucinationWarning?: string;
 }
 
 export default function AppChat() {
@@ -121,6 +124,13 @@ export default function AppChat() {
     setCurrentChatId(chat.id);
     setMode(chat.mode === "incognito" ? "lawyer" : chat.mode);
     setShowHistory(false);
+  };
+
+  // Geri bildirim
+  const handleFeedback = (msgId: string, type: "up" | "down") => {
+    setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, feedback: type } : m));
+    // Analitik kaydet
+    trackEvent(type === "up" ? "feedback_positive" : "feedback_negative");
   };
 
   // Sesli okuma toggle
@@ -329,12 +339,21 @@ export default function AppChat() {
         setLoading(false);
       }
 
-      // Atıf doğrulama + güven skoru
+      // Atıf doğrulama + güven skoru + hallucination tespiti
       setMessages((prev) => prev.map((m) => {
         if (m.id === aiMsgId && m.content) {
           const cits = validateCitations(m.content);
           const conf = calculateConfidenceScore(cits);
-          return { ...m, citations: cits, confidenceLabel: conf.label, confidenceColor: conf.color };
+          const hallReport = detectHallucination(m.content);
+          const content = hallReport.disclaimer ? appendDisclaimer(m.content, hallReport) : m.content;
+          return {
+            ...m,
+            content,
+            citations: cits,
+            confidenceLabel: conf.label,
+            confidenceColor: conf.color,
+            hallucinationWarning: hallReport.overallRisk === "high" ? hallReport.disclaimer : undefined,
+          };
         }
         return m;
       }));
@@ -496,7 +515,25 @@ export default function AppChat() {
                             <UserSearch className="w-3 h-3" /> Avukata sor
                           </Link>
                         )}
+                        {/* Geri bildirim */}
+                        <div className="flex items-center gap-1 ml-auto">
+                          <button onClick={() => handleFeedback(msg.id, "up")}
+                            className={`p-1 rounded ${msg.feedback === "up" ? "text-emerald-500" : "text-slate-300 hover:text-emerald-500"}`}>
+                            <ThumbsUp className="w-3 h-3" />
+                          </button>
+                          <button onClick={() => handleFeedback(msg.id, "down")}
+                            className={`p-1 rounded ${msg.feedback === "down" ? "text-red-500" : "text-slate-300 hover:text-red-500"}`}>
+                            <ThumbsDown className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
+                      {/* Hallucination uyarısı */}
+                      {msg.hallucinationWarning && (
+                        <div className="flex items-start gap-1.5 mt-1.5 text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
+                          <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                          <span>{msg.hallucinationWarning}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
