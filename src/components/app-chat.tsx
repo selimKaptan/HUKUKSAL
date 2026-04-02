@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { getUserPlan, canDoAnalysis, incrementAnalysisCount } from "@/lib/feature-gate";
 import { trackEvent, EVENTS } from "@/lib/analytics";
+import { validateCitations, calculateConfidenceScore, type CitationValidation } from "@/lib/citation-validator";
 import { getChatHistory, saveChat, deleteChat, generateChatTitle, type SavedChat } from "@/lib/chat-history";
 import { getTodaysCase } from "@/lib/daily-cases";
 import { shareApp, recordShare } from "@/lib/referral";
@@ -33,6 +34,9 @@ interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  citations?: CitationValidation[];
+  confidenceLabel?: string;
+  confidenceColor?: string;
 }
 
 export default function AppChat() {
@@ -311,6 +315,16 @@ export default function AppChat() {
         setLoading(false);
       }
 
+      // Atıf doğrulama + güven skoru
+      setMessages((prev) => prev.map((m) => {
+        if (m.id === aiMsgId && m.content) {
+          const cits = validateCitations(m.content);
+          const conf = calculateConfidenceScore(cits);
+          return { ...m, citations: cits, confidenceLabel: conf.label, confidenceColor: conf.color };
+        }
+        return m;
+      }));
+
       // Milestone kontrolü
       const ms = trackMilestone("questions");
       if (ms) {
@@ -428,18 +442,43 @@ export default function AppChat() {
                     : mode === "incognito" ? "bg-slate-800 text-slate-200 rounded-bl-md border border-slate-700" : "bg-white text-slate-800 rounded-bl-md shadow-sm border border-slate-100"
                 }`}>
                   <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                  {/* Kopyala + Avukata sor */}
+                  {/* Güven skoru + atıflar + aksiyonlar */}
                   {msg.role === "assistant" && (
-                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100/50">
-                      <button onClick={() => copyMessage(msg.id, msg.content)}
-                        className={`text-[10px] flex items-center gap-1 ${mode === "incognito" ? "text-slate-500" : "text-slate-400"} hover:text-slate-600`}>
-                        {copiedId === msg.id ? <><Check className="w-3 h-3 text-emerald-500" /> Kopyalandı</> : <><Copy className="w-3 h-3" /> Kopyala</>}
-                      </button>
-                      {mode !== "incognito" && (
-                        <Link href="/tools/find-lawyer" className="text-[10px] flex items-center gap-1 text-blue-500 hover:text-blue-600">
-                          <UserSearch className="w-3 h-3" /> Avukata sor
-                        </Link>
+                    <div className="mt-2 pt-2 border-t border-slate-100/50">
+                      {/* Güven skoru */}
+                      {msg.confidenceLabel && (
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className={`text-[10px] font-semibold ${msg.confidenceColor || "text-slate-400"}`}>
+                            Güvenilirlik: {msg.confidenceLabel}
+                          </span>
+                          {msg.citations && msg.citations.filter((c) => c.valid).length > 0 && (
+                            <span className="text-[10px] text-slate-400">
+                              ({msg.citations.filter((c) => c.valid).length} doğrulanmış kaynak)
+                            </span>
+                          )}
+                        </div>
                       )}
+                      {/* Doğrulanmış atıflar */}
+                      {msg.citations && msg.citations.filter((c) => c.description).length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-1.5">
+                          {msg.citations.filter((c) => c.description).map((c, i) => (
+                            <span key={i} className="text-[9px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-md border border-emerald-200">
+                              {c.kanun} md.{c.madde}: {c.description}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => copyMessage(msg.id, msg.content)}
+                          className="text-[10px] flex items-center gap-1 text-slate-400 hover:text-slate-600">
+                          {copiedId === msg.id ? <><Check className="w-3 h-3 text-emerald-500" /> Kopyalandı</> : <><Copy className="w-3 h-3" /> Kopyala</>}
+                        </button>
+                        {mode !== "incognito" && (
+                          <Link href="/tools/find-lawyer" className="text-[10px] flex items-center gap-1 text-blue-500 hover:text-blue-600">
+                            <UserSearch className="w-3 h-3" /> Avukata sor
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
