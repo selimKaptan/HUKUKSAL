@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Scale } from "lucide-react";
+import { Scale, Flame, Lightbulb, Crown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { ProgressSteps } from "@/components/ui/progress-steps";
 import { WizardStep1 } from "@/components/dashboard/wizard-step1";
@@ -12,6 +12,9 @@ import { useAuth } from "@/lib/auth-context";
 import { saveCaseResult } from "@/lib/case-storage";
 import { saveCase } from "@/lib/db";
 import { WizardStep3 } from "@/components/dashboard/wizard-step3";
+import { LoginWall, LimitWall, ProBadge } from "@/components/paywall";
+import { getUserPlan, canDoAnalysis, incrementAnalysisCount } from "@/lib/feature-gate";
+import { getTodaysTip, updateStreak } from "@/lib/daily-tips";
 import type { CaseCategory } from "@/types/database";
 
 interface FormData {
@@ -39,13 +42,20 @@ export default function DashboardPage() {
     opposingParty: "",
     additionalNotes: "",
   });
+  const [showLoginWall, setShowLoginWall] = useState(false);
+  const [showLimitWall, setShowLimitWall] = useState(false);
+  const [streak, setStreak] = useState({ currentStreak: 0, totalVisits: 0, longestStreak: 0, lastVisitDate: "" });
+  const tip = getTodaysTip();
+  const plan = getUserPlan(user);
+  const analysisStatus = canDoAnalysis(plan);
 
-  // Auth koruması - üye olmayan kullanıcıları login'e yönlendir
+  // Guest mode - login olmadan kullanıma izin ver
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/auth/login");
+    if (!authLoading) {
+      const s = updateStreak();
+      setStreak(s);
     }
-  }, [authLoading, user, router]);
+  }, [authLoading]);
 
   if (authLoading) {
     return (
@@ -55,13 +65,22 @@ export default function DashboardPage() {
     );
   }
 
-  if (!user) return null;
-
   const updateForm = (data: Partial<FormData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
   };
 
   const handleSubmit = async () => {
+    // Analiz limiti kontrolü
+    const status = canDoAnalysis(plan);
+    if (!status.allowed) {
+      if (plan === "guest") {
+        setShowLoginWall(true);
+      } else {
+        setShowLimitWall(true);
+      }
+      return;
+    }
+
     setIsAnalyzing(true);
     setStreamStatus("Analiz başlatılıyor...");
     try {
@@ -144,6 +163,9 @@ export default function DashboardPage() {
         result = await response.json();
       }
 
+      // Analiz sayacını artır
+      incrementAnalysisCount();
+
       // Save to user history if logged in
       if (user) {
         // localStorage (eski yöntem - fallback)
@@ -208,7 +230,86 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <div className="max-w-3xl mx-auto px-6 py-12">
+      <div className="max-w-3xl mx-auto px-6 py-8">
+        {/* Günlük İpucu + Streak */}
+        <div className="grid md:grid-cols-[1fr_auto] gap-4 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3"
+          >
+            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Lightbulb className="w-5 h-5 text-amber-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-amber-600 mb-0.5">Günün Hukuk İpucu — {tip.category}</p>
+              <p className="text-sm font-bold text-slate-900 mb-1">{tip.title}</p>
+              <p className="text-xs text-slate-600 leading-relaxed">{tip.content}</p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="flex md:flex-col items-center gap-3 bg-white border border-slate-200 rounded-2xl p-4"
+          >
+            <div className="flex items-center gap-1.5">
+              <Flame className="w-5 h-5 text-orange-500" />
+              <span className="text-2xl font-black text-slate-900">{streak.currentStreak}</span>
+            </div>
+            <p className="text-xs text-slate-500 text-center">gün seri</p>
+            {plan !== "pro" && (
+              <div className="text-center">
+                <p className="text-xs text-blue-600 font-semibold">{analysisStatus.remaining}/{analysisStatus.limit}</p>
+                <p className="text-[10px] text-slate-400">analiz hakkı</p>
+              </div>
+            )}
+            {plan === "pro" && <ProBadge />}
+          </motion.div>
+        </div>
+
+        {/* Guest banner */}
+        {!user && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6 flex items-center justify-between"
+          >
+            <div>
+              <p className="text-sm font-semibold text-blue-900">Misafir olarak 1 ücretsiz analiz hakkınız var</p>
+              <p className="text-xs text-blue-600">Üye olun, aylık 3 analiz + tüm özellikler açılsın</p>
+            </div>
+            <Link href="/auth/register">
+              <button className="text-xs bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 flex items-center gap-1">
+                Üye Ol <ChevronRight className="w-3 h-3" />
+              </button>
+            </Link>
+          </motion.div>
+        )}
+
+        {/* Pro upsell for free users */}
+        {user && plan === "free" && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-4 mb-6 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <Crown className="w-5 h-5 text-indigo-600" />
+              <div>
+                <p className="text-sm font-semibold text-indigo-900">Pro ile sınırsız analiz + PDF indirme</p>
+                <p className="text-xs text-indigo-600">AI sohbet, belge analizi ve daha fazlası</p>
+              </div>
+            </div>
+            <Link href="/pricing">
+              <button className="text-xs bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 flex items-center gap-1">
+                <Crown className="w-3 h-3" /> Pro <ChevronRight className="w-3 h-3" />
+              </button>
+            </Link>
+          </motion.div>
+        )}
+
         {/* Progress Steps */}
         <ProgressSteps steps={STEPS} currentStep={currentStep} />
 
@@ -290,6 +391,10 @@ export default function DashboardPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Paywall modals */}
+      <LoginWall show={showLoginWall} onClose={() => setShowLoginWall(false)} feature="Daha fazla analiz yapmak için" />
+      <LimitWall show={showLimitWall} onClose={() => setShowLimitWall(false)} limitType="analiz" resetInfo="ay başında" />
     </div>
   );
 }

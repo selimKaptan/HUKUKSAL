@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Scale, ArrowLeft, RotateCcw, ExternalLink, Database, Wifi, WifiOff, Sparkles, Cpu, Clock, Timer, CalendarDays } from "lucide-react";
+import { Scale, ArrowLeft, RotateCcw, ExternalLink, Database, Wifi, WifiOff, Sparkles, Cpu, Clock, Timer, CalendarDays, Crown } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,9 @@ import {
   RecommendationCard,
 } from "@/components/results/analysis-cards";
 import { PDFGenerator } from "@/components/results/pdf-generator";
+import { ProWall, ProBadge } from "@/components/paywall";
+import { getUserPlan, canAccess } from "@/lib/feature-gate";
+import { useAuth } from "@/lib/auth-context";
 import { CASE_CATEGORY_LABELS } from "@/types/database";
 import type { AnalysisResult, CaseCategory } from "@/types/database";
 import type { UyapDecision } from "@/lib/uyap-client";
@@ -36,6 +39,10 @@ interface StoredData {
 
 export default function ResultsPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const plan = getUserPlan(user);
+  const canDownloadPdf = canAccess(plan, "pdf_download");
+  const [showProWall, setShowProWall] = useState(false);
   const [data, setData] = useState<StoredData | null>(null);
 
   useEffect(() => {
@@ -402,19 +409,32 @@ export default function ResultsPage() {
           transition={{ delay: 0.7 }}
           className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 p-8 text-center"
         >
-          <h2 className="text-xl font-bold text-slate-900 mb-3">
+          <h2 className="text-xl font-bold text-slate-900 mb-3 flex items-center justify-center gap-2">
             Avukat Dosyası Hazır
+            {!canDownloadPdf && <ProBadge />}
           </h2>
           <p className="text-slate-500 mb-6 max-w-lg mx-auto">
-            Analiz raporunuzu, emsal kararları ve önerilerinizi içeren profesyonel
-            dosyayı indirin. Avukatınıza bu dosyayla gidin.
+            {canDownloadPdf
+              ? "Analiz raporunuzu, emsal kararları ve önerilerinizi içeren profesyonel dosyayı indirin."
+              : "PDF rapor indirmek Pro üyelik gerektirir. Pro'ya geçerek avukat dosyanızı indirin."}
           </p>
+          {!canDownloadPdf ? (
+            <button
+              onClick={() => setShowProWall(true)}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
+            >
+              <Crown className="w-5 h-5" /> Pro ile PDF İndir
+            </button>
+          ) : (
           <PDFGenerator
             result={result}
             caseTitle={caseTitle}
             category={CASE_CATEGORY_LABELS[category]}
           />
+          )}
         </motion.div>
+
+        <ProWall show={showProWall} onClose={() => setShowProWall(false)} feature="PDF rapor indirmek" />
 
         {/* Disclaimer */}
         <div className="mt-10 p-4 bg-amber-50 border border-amber-200 rounded-xl text-center">
