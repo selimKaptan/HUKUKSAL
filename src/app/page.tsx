@@ -1,27 +1,35 @@
 "use client";
 
-import { useIsApp } from "@/lib/use-app-mode";
-import { Navbar } from "@/components/landing/navbar";
-import { HeroSection, FeaturesSection, CTASection } from "@/components/landing/hero-section";
-import { Footer } from "@/components/landing/footer";
-import AppChat from "@/components/app-chat";
+import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
+
+// Lazy load - sadece ihtiyaç olduğunda yükle
+const AppChat = dynamic(() => import("@/components/app-chat"), { ssr: false });
+const LandingPage = dynamic(() => import("@/components/landing-page"), { ssr: false });
 
 export default function HomePage() {
-  const isApp = useIsApp();
+  const [mode, setMode] = useState<"loading" | "app" | "web">("loading");
 
-  // PWA veya mobil → Chat arayüzü
-  if (isApp) {
+  useEffect(() => {
+    // PWA standalone kontrolü
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      ("standalone" in window.navigator && (window.navigator as unknown as { standalone: boolean }).standalone);
+
+    // Mobil kontrolü
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 768;
+
+    setMode(isStandalone || isMobile ? "app" : "web");
+  }, []);
+
+  // Yüklenirken boş ekran (flash önleme)
+  if (mode === "loading") {
+    return <div className="h-[100dvh] bg-[#f5f4ef]" />;
+  }
+
+  if (mode === "app") {
     return <AppChat />;
   }
 
-  // Desktop tarayıcı → Landing page
-  return (
-    <main className="min-h-screen">
-      <Navbar />
-      <HeroSection />
-      <FeaturesSection />
-      <CTASection />
-      <Footer />
-    </main>
-  );
+  return <LandingPage />;
 }
