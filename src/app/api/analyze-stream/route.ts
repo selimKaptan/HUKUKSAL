@@ -2,7 +2,9 @@ import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { analyzeCase } from "@/lib/analysis-engine";
 import { searchUyapPrecedents, getCategoryKeywords } from "@/lib/uyap-client";
-import { checkRateLimit } from "@/lib/rate-limiter";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limiter";
+import { verifyCsrf } from "@/lib/api-security";
+import { validateAnalysisInput, sanitizeForPrompt } from "@/lib/sanitize";
 import { CASE_CATEGORY_LABELS } from "@/types/database";
 import { PRECEDENTS_DB } from "@/lib/precedents-data";
 import type { CaseCategory } from "@/types/database";
@@ -13,10 +15,14 @@ import type { UyapDecision } from "@/lib/uyap-client";
  * Server-Sent Events (SSE) ile adım adım sonuç gönderir
  */
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    || request.headers.get("x-real-ip")
-    || "unknown";
-  const rateCheck = checkRateLimit(ip);
+  // CSRF kontrolü
+  if (!verifyCsrf(request)) {
+    return new Response(JSON.stringify({ error: "Geçersiz istek kaynağı." }), { status: 403 });
+  }
+
+  // Rate limiting
+  const ip = getClientIp(request.headers);
+  const rateCheck = checkRateLimit(ip, "/api/analyze-stream");
   if (!rateCheck.allowed) {
     return new Response(
       JSON.stringify({ error: `Çok fazla istek. ${rateCheck.retryAfter}s sonra deneyin.` }),
@@ -25,11 +31,17 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { eventSummary, category, additionalNotes } = body;
 
-  if (!eventSummary || !category || eventSummary.length < 20) {
-    return new Response(JSON.stringify({ error: "Geçersiz giriş" }), { status: 400 });
+  // Input doğrulama
+  const validation = validateAnalysisInput(body);
+  if (!validation.valid) {
+    return new Response(JSON.stringify({ error: validation.error }), { status: 400 });
   }
+
+  // Prompt injection koruması
+  const eventSummary = sanitizeForPrompt(body.eventSummary);
+  const category = body.category;
+  const additionalNotes = body.additionalNotes ? sanitizeForPrompt(body.additionalNotes) : undefined;
 
   const hasClaudeKey = !!process.env.ANTHROPIC_API_KEY;
 
@@ -212,7 +224,8 @@ export async function POST(request: NextRequest) {
         send("result", finalResult);
         send("done", { success: true });
       } catch (error) {
-        send("error", { message: error instanceof Error ? error.message : "Bilinmeyen hata" });
+        console.error("[Stream Error]", error);
+        send("error", { message: "Analiz sırasında bir hata oluştu. Lütfen tekrar deneyin." });
       } finally {
         controller.close();
       }

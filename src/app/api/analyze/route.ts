@@ -3,13 +3,13 @@ import Anthropic from "@anthropic-ai/sdk";
 import { analyzeCase } from "@/lib/analysis-engine";
 import { analyzeCaseWithClaude } from "@/lib/claude-analyzer";
 import { searchUyapPrecedents, getCategoryKeywords } from "@/lib/uyap-client";
-import { checkRateLimit } from "@/lib/rate-limiter";
+import { apiSecurityCheck, safeErrorResponse } from "@/lib/api-security";
+import { validateAnalysisInput, sanitizeForPrompt } from "@/lib/sanitize";
 import type { CaseCategory } from "@/types/database";
 import type { UyapDecision } from "@/lib/uyap-client";
 
 /**
  * AI ile olay özetinden en uygun UYAP arama kelimelerini çıkarır.
- * Basit kelime bölme yerine Claude AI kullanarak hukuki terimlerle arama yapar.
  */
 async function extractSearchKeywordsWithAI(
   eventSummary: string,
@@ -90,47 +90,31 @@ async function filterUyapWithAI(
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting kontrolü
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-      || request.headers.get("x-real-ip")
-      || "unknown";
-    const rateCheck = checkRateLimit(ip);
-    if (!rateCheck.allowed) {
-      return NextResponse.json(
-        { error: `Çok fazla istek gönderdiniz. ${rateCheck.retryAfter} saniye sonra tekrar deneyin.` },
-        { status: 429, headers: { "Retry-After": String(rateCheck.retryAfter || 60) } }
-      );
-    }
+    // Güvenlik kontrolü (CSRF + Rate Limit)
+    const securityError = apiSecurityCheck(request, "/api/analyze");
+    if (securityError) return securityError;
 
     const body = await request.json();
-    const { eventSummary, category, additionalNotes } = body;
 
-    if (!eventSummary || !category) {
-      return NextResponse.json(
-        { error: "eventSummary and category are required" },
-        { status: 400 }
-      );
+    // Input doğrulama
+    const validation = validateAnalysisInput(body);
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    if (eventSummary.length < 20) {
-      return NextResponse.json(
-        { error: "eventSummary must be at least 20 characters" },
-        { status: 400 }
-      );
-    }
+    // Prompt injection koruması
+    const eventSummary = sanitizeForPrompt(body.eventSummary);
+    const category = body.category;
+    const additionalNotes = body.additionalNotes ? sanitizeForPrompt(body.additionalNotes) : undefined;
 
     const hasClaudeKey = !!process.env.ANTHROPIC_API_KEY;
 
-    // 1. AI ile akıllı arama kelimeleri çıkar (API key varsa)
+    // 1. AI ile akıllı arama kelimeleri çıkar
     let searchKeywords: string[] = [];
     if (hasClaudeKey) {
-      searchKeywords = await extractSearchKeywordsWithAI(
-        eventSummary,
-        category
-      );
+      searchKeywords = await extractSearchKeywordsWithAI(eventSummary, category);
     }
 
-    // Fallback: AI çalışmazsa basit kelime çıkarma
     if (searchKeywords.length === 0) {
       const categoryKeywords = getCategoryKeywords(category);
       const summaryWords = eventSummary
@@ -141,7 +125,7 @@ export async function POST(request: NextRequest) {
       searchKeywords = [summaryWords || categoryKeywords[0] || "dava"];
     }
 
-    // 2. UYAP'tan gerçek emsal kararları ara - tüm AI anahtar kelimeleriyle
+    // 2. UYAP'tan gerçek emsal kararları ara
     let uyapDecisions: UyapDecision[] = [];
     let uyapAvailable = false;
     let uyapError: string | null = null;
@@ -156,10 +140,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (uyapResults.success && uyapResults.decisions.length > 0) {
-          // Tekrar eden kararları filtrele
-          const existingIds = new Set(
-            uyapDecisions.map((d) => d.esas_no || d.karar_id)
-          );
+          const existingIds = new Set(uyapDecisions.map((d) => d.esas_no || d.karar_id));
           const newDecisions = uyapResults.decisions.filter(
             (d) => !existingIds.has(d.esas_no || d.karar_id)
           );
@@ -170,21 +151,18 @@ export async function POST(request: NextRequest) {
           uyapError = uyapResults.error;
         }
       } catch {
-        console.log(`UYAP araması başarısız (kelime: ${keyword}), devam ediliyor.`);
+        // UYAP araması başarısız, devam et
       }
     }
 
-    // En fazla 10 sonuç tut
     uyapDecisions = uyapDecisions.slice(0, 10);
 
-    // 2.5. AI ile UYAP sonuçlarını filtrele - en alakalı olanları seç
     if (hasClaudeKey && uyapDecisions.length > 3) {
       uyapDecisions = await filterUyapWithAI(uyapDecisions, eventSummary, category);
     }
 
-    // 3. Claude AI ile analiz (API key varsa)
+    // 3. Claude AI ile analiz
     let analysisResult;
-
     if (hasClaudeKey) {
       try {
         analysisResult = await analyzeCaseWithClaude(
@@ -195,18 +173,10 @@ export async function POST(request: NextRequest) {
         );
       } catch (error) {
         console.error("Claude API error, falling back to local:", error);
-        analysisResult = analyzeCase(
-          eventSummary,
-          category as CaseCategory,
-          additionalNotes
-        );
+        analysisResult = analyzeCase(eventSummary, category as CaseCategory, additionalNotes);
       }
     } else {
-      analysisResult = analyzeCase(
-        eventSummary,
-        category as CaseCategory,
-        additionalNotes
-      );
+      analysisResult = analyzeCase(eventSummary, category as CaseCategory, additionalNotes);
     }
 
     // 4. Sonuçları birleştir
@@ -222,10 +192,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("Analysis error:", error);
-    return NextResponse.json(
-      { error: "An error occurred during analysis" },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, "Analiz sırasında bir hata oluştu. Lütfen tekrar deneyin.");
   }
 }

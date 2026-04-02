@@ -27,6 +27,20 @@ import {
 
 type TabType = "overview" | "users" | "cases" | "verification";
 
+async function verifyAdminServerSide(email: string): Promise<boolean> {
+  try {
+    const res = await fetch("/api/admin/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    return data.isAdmin === true;
+  } catch {
+    return false;
+  }
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const { user, loading, isAdmin } = useAuth();
@@ -36,14 +50,24 @@ export default function AdminDashboard() {
   const [pendingLawyers, setPendingLawyers] = useState<{ id: string; name: string; email: string; baroSicilNo: string; barAssociation: string; city: string }[]>([]);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
 
+  const [serverVerified, setServerVerified] = useState(false);
+
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
       router.push("/");
       return;
     }
     if (user && isAdmin) {
-      setStats(getAdminStats());
-      loadPendingVerifications();
+      // Server-side admin doğrulama
+      verifyAdminServerSide(user.email).then((verified) => {
+        if (!verified) {
+          router.push("/");
+          return;
+        }
+        setServerVerified(true);
+        setStats(getAdminStats());
+        loadPendingVerifications();
+      });
     }
   }, [user, loading, isAdmin, router]);
 
@@ -72,15 +96,15 @@ export default function AdminDashboard() {
     }
   };
 
-  if (loading || !stats) {
+  if (loading || !stats || !serverVerified) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="animate-pulse text-slate-400">Yükleniyor...</div>
+        <div className="animate-pulse text-slate-400">Doğrulanıyor...</div>
       </div>
     );
   }
 
-  if (!isAdmin) return null;
+  if (!isAdmin || !serverVerified) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
