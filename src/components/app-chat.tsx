@@ -45,7 +45,6 @@ interface ChatMessage {
 }
 
 export default function AppChat() {
-  const router = useRouter();
   const { user } = useAuth();
   const plan = getUserPlan(user);
   const [input, setInput] = useState("");
@@ -66,6 +65,7 @@ export default function AppChat() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const todaysCase = getTodaysCase();
@@ -414,14 +414,23 @@ export default function AppChat() {
 
       {/* Main */}
       <div className="flex-1 overflow-y-auto px-4">
-        {isEmpty ? (
+        {/* AI Emsal Modu - Kapsamlı Analiz Formu */}
+        {mode === "emsal" ? (
+          <EmsalMode
+            messages={messages}
+            loading={loading}
+            onSubmit={handleSend}
+            onBack={() => { setMode("lawyer"); setMessages([]); }}
+            messagesEndRef={messagesEndRef}
+          />
+        ) : isEmpty ? (
           <div className="flex flex-col items-center justify-center h-full pb-4">
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center w-full max-w-md">
-              <h2 className={`text-3xl font-bold mb-2 ${mode === "incognito" ? "text-white" : "text-slate-800"}`}>
+              <h2 className="text-3xl font-bold mb-2 text-slate-800">
                 Haklarım
               </h2>
-              <p className={`text-sm mb-6 ${mode === "incognito" ? "text-slate-400" : "text-slate-400"}`}>
-                {mode === "emsal" ? "Davanızı anlatın, emsal kararları bulalım" : "Hukuki sorununuzu anlatın"}
+              <p className="text-sm mb-6 text-slate-400">
+                Hukuki sorununuzu anlatın
               </p>
 
               {/* Hazır Şablonlar */}
@@ -556,14 +565,7 @@ export default function AppChat() {
               </motion.div>
             )}
 
-            {/* Emsal modunda detaylı rapor linki */}
-            {!loading && messages.length > 0 && messages[messages.length - 1].role === "assistant" && mode === "emsal" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center pt-2">
-                <button onClick={() => router.push("/results")} className="text-xs text-blue-600 font-semibold flex items-center gap-1 hover:underline">
-                  <Search className="w-3.5 h-3.5" /> Detaylı emsal raporu
-                </button>
-              </motion.div>
-            )}
+            {/* Emsal rapor linki artık EmsalMode'da */}
             <div ref={messagesEndRef} />
           </div>
         )}
@@ -604,7 +606,7 @@ export default function AppChat() {
               >
                 <Camera className="w-4 h-4" />
               </button>
-              <input ref={fileInputRef} type="file" accept="image/*,application/pdf" capture="environment" className="hidden" onChange={handleDocScan} />
+              <input ref={fileInputRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleDocScan} />
 
               {/* Mikrofon */}
               <button
@@ -653,16 +655,19 @@ export default function AppChat() {
 
                 {/* Grid butonlar */}
                 <div className="grid grid-cols-3 gap-3 mb-5">
-                  <button onClick={() => { setShowPlusMenu(false); if (plan !== "pro") { setShowProPage(true); return; } fileInputRef.current?.click(); }}
+                  <button onClick={() => { setShowPlusMenu(false); if (plan !== "pro") { setShowProPage(true); return; } cameraInputRef.current?.click(); }}
                     className="flex flex-col items-center gap-2 p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors">
                     <Camera className="w-6 h-6 text-slate-600" />
                     <span className="text-xs font-semibold text-slate-700">Kamera</span>
                   </button>
+                  <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleDocScan} />
+
                   <button onClick={() => { setShowPlusMenu(false); if (plan !== "pro") { setShowProPage(true); return; } fileInputRef.current?.click(); }}
                     className="flex flex-col items-center gap-2 p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors">
                     <FileText className="w-6 h-6 text-slate-600" />
                     <span className="text-xs font-semibold text-slate-700">Dosya</span>
                   </button>
+
                   <button onClick={() => { setShowPlusMenu(false); if (plan !== "pro") { setShowProPage(true); return; } setMode("emsal"); setMessages([]); }}
                     className="flex flex-col items-center gap-2 p-4 bg-teal-50 rounded-2xl hover:bg-teal-100 transition-colors border border-teal-200">
                     <Search className="w-6 h-6 text-teal-600" />
@@ -827,6 +832,143 @@ export default function AppChat() {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+// Emsal Mode - Kapsamlı analiz formu (webdeki gibi)
+function EmsalMode({ messages, loading, onSubmit, onBack, messagesEndRef }: {
+  messages: ChatMessage[];
+  loading: boolean;
+  onSubmit: (text: string) => void;
+  onBack: () => void;
+  messagesEndRef: React.RefObject<HTMLDivElement>;
+}) {
+  const [emsalInput, setEmsalInput] = useState("");
+  const [emsalCategory, setEmsalCategory] = useState("");
+  const router = useRouter();
+
+  const CATEGORIES = [
+    { value: "is_hukuku", label: "İş Hukuku", emoji: "💼" },
+    { value: "aile_hukuku", label: "Aile Hukuku", emoji: "👨‍👩‍👧" },
+    { value: "kira_hukuku", label: "Kira Hukuku", emoji: "🏠" },
+    { value: "tuketici_hukuku", label: "Tüketici", emoji: "🛒" },
+    { value: "ceza_hukuku", label: "Ceza Hukuku", emoji: "⚖️" },
+    { value: "ticaret_hukuku", label: "Ticaret", emoji: "📊" },
+    { value: "miras_hukuku", label: "Miras", emoji: "📜" },
+    { value: "idare_hukuku", label: "İdare", emoji: "🏛️" },
+    { value: "icra_iflas", label: "İcra & İflas", emoji: "⚠️" },
+  ];
+
+  const hasResults = messages.length > 0;
+
+  return (
+    <div className="py-4 max-w-2xl mx-auto">
+      {/* Geri butonu + başlık */}
+      <div className="flex items-center gap-3 mb-5">
+        <button onClick={onBack} className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center">
+          <X className="w-4 h-4 text-slate-600" />
+        </button>
+        <div>
+          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <Search className="w-5 h-5 text-teal-600" /> AI Emsal Analizi
+          </h2>
+          <p className="text-xs text-slate-400">Emsal kararlar + kazanma oranı</p>
+        </div>
+      </div>
+
+      {/* Analiz Formu */}
+      {!hasResults && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-4">
+            {/* Kategori seçimi */}
+            <label className="text-xs font-semibold text-slate-700 mb-2 block">Dava Kategorisi</label>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {CATEGORIES.map((c) => (
+                <button key={c.value} onClick={() => setEmsalCategory(c.value)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                    emsalCategory === c.value ? "bg-teal-500 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}>
+                  {c.emoji} {c.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Olay özeti */}
+            <label className="text-xs font-semibold text-slate-700 mb-2 block">Olayınızı Anlatın</label>
+            <textarea
+              value={emsalInput}
+              onChange={(e) => setEmsalInput(e.target.value)}
+              placeholder="Olayınızı detaylı şekilde anlatın... (en az 20 karakter)"
+              rows={5}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:border-teal-500 outline-none resize-none"
+            />
+
+            <button
+              onClick={() => { if (emsalInput.length >= 20) onSubmit(emsalInput); }}
+              disabled={emsalInput.length < 20 || loading}
+              className="w-full mt-4 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 text-white font-semibold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <><motion.div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }} /> Analiz Ediliyor...</>
+              ) : (
+                <><Search className="w-4 h-4" /> Emsal Analizi Başlat</>
+              )}
+            </button>
+          </div>
+
+          <p className="text-[10px] text-slate-400 text-center">
+            UYAP, Yargıtay, AYM, AİHM ve Danıştay kararları taranacaktır.
+          </p>
+        </motion.div>
+      )}
+
+      {/* Sonuçlar */}
+      {hasResults && (
+        <div className="space-y-4">
+          {messages.map((msg) => (
+            <motion.div key={msg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+              {msg.role === "user" ? (
+                <div className="bg-teal-50 border border-teal-200 rounded-xl p-4">
+                  <p className="text-xs font-semibold text-teal-700 mb-1">Analiz Edilen Olay:</p>
+                  <p className="text-sm text-slate-700">{msg.content}</p>
+                </div>
+              ) : (
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                  <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                </div>
+              )}
+            </motion.div>
+          ))}
+
+          {loading && (
+            <div className="bg-white border border-slate-200 rounded-xl p-6 text-center">
+              <div className="flex justify-center gap-1.5 mb-3">
+                {[0, 1, 2].map((i) => (
+                  <motion.div key={i} className="w-2.5 h-2.5 bg-teal-500 rounded-full"
+                    animate={{ y: [0, -8, 0] }} transition={{ duration: 0.5, delay: i * 0.12, repeat: Infinity }} />
+                ))}
+              </div>
+              <p className="text-sm text-slate-500">Emsal kararlar taranıyor...</p>
+            </div>
+          )}
+
+          {!loading && (
+            <div className="flex gap-2">
+              <button onClick={() => router.push("/results")}
+                className="flex-1 bg-teal-600 text-white py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2">
+                <Search className="w-4 h-4" /> Detaylı Rapor
+              </button>
+              <button onClick={() => { onBack(); }}
+                className="px-4 bg-slate-100 text-slate-600 py-3 rounded-xl text-sm font-semibold">
+                Kapat
+              </button>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+      )}
     </div>
   );
 }
