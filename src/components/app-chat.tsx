@@ -5,12 +5,26 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Scale, Send, Mic, X, Crown, ChevronRight,
-  EyeOff, User, Sparkles, Search,
+  EyeOff, User, Sparkles, Search, Copy, Check,
+  UserSearch, Share2, BookOpen,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { getUserPlan, canDoAnalysis, incrementAnalysisCount } from "@/lib/feature-gate";
 import { trackEvent, EVENTS } from "@/lib/analytics";
+import { getChatHistory, saveChat, deleteChat, generateChatTitle, type SavedChat } from "@/lib/chat-history";
+import { getTodaysCase } from "@/lib/daily-cases";
+import { shareApp, recordShare } from "@/lib/referral";
+
+// Hazır soru şablonları
+const QUICK_TEMPLATES = [
+  { emoji: "💼", text: "İşten haksız çıkarıldım", category: "İş Hukuku" },
+  { emoji: "🏠", text: "Ev sahibim kiramı artırmak istiyor", category: "Kira Hukuku" },
+  { emoji: "🛒", text: "İnternetten aldığım ürün bozuk çıktı", category: "Tüketici" },
+  { emoji: "🚗", text: "Trafik kazasında haklarım neler?", category: "Tazminat" },
+  { emoji: "👨‍👩‍👧", text: "Boşanma davası açmak istiyorum", category: "Aile Hukuku" },
+  { emoji: "📝", text: "Sözleşmemi incelemek istiyorum", category: "Borçlar" },
+];
 
 type AppMode = "lawyer" | "incognito" | "emsal";
 
@@ -31,10 +45,16 @@ export default function AppChat() {
   const [isListening, setIsListening] = useState(false);
   const [showModeSelector, setShowModeSelector] = useState(false);
   const [showProPage, setShowProPage] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [chatHistory, setChatHistory] = useState<SavedChat[]>([]);
+  const [currentChatId, setCurrentChatId] = useState<string>(`chat_${Date.now()}`);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [shareToast, setShareToast] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
+  const todaysCase = getTodaysCase();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -42,7 +62,55 @@ export default function AppChat() {
 
   useEffect(() => {
     inputRef.current?.focus();
+    setChatHistory(getChatHistory());
   }, []);
+
+  // Sohbeti kaydet (gizli mod hariç)
+  useEffect(() => {
+    if (mode === "incognito" || messages.length === 0) return;
+    const chat: SavedChat = {
+      id: currentChatId,
+      title: generateChatTitle(messages[0].content),
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      mode,
+      createdAt: chatHistory.find((c) => c.id === currentChatId)?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    saveChat(chat);
+    setChatHistory(getChatHistory());
+  }, [messages, mode, currentChatId, chatHistory]);
+
+  // Mesaj kopyalama
+  const copyMessage = (id: string, content: string) => {
+    navigator.clipboard.writeText(content);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  // Paylaş ve kazan
+  const handleShare = async () => {
+    const shared = await shareApp();
+    if (shared) {
+      const result = recordShare();
+      setShareToast(result.bonusGranted ? "1 bonus analiz hakkı kazandınız!" : "Paylaşıldı! 3 paylaşımda 1 analiz hakkı");
+      setTimeout(() => setShareToast(""), 3000);
+    }
+  };
+
+  // Yeni sohbet başlat
+  const startNewChat = () => {
+    setMessages([]);
+    setCurrentChatId(`chat_${Date.now()}`);
+    setShowHistory(false);
+  };
+
+  // Geçmiş sohbeti yükle
+  const loadChat = (chat: SavedChat) => {
+    setMessages(chat.messages.map((m, i) => ({ id: `${chat.id}_${i}`, ...m })));
+    setCurrentChatId(chat.id);
+    setMode(chat.mode === "incognito" ? "lawyer" : chat.mode);
+    setShowHistory(false);
+  };
 
   // Speech Recognition - mikrofon izni düzgün istenir
   const toggleListening = useCallback(() => {
@@ -192,9 +260,9 @@ export default function AppChat() {
 
       {/* Header */}
       <header className="flex items-center justify-between px-4 pt-2 pb-1 safe-area-top">
-        <Link href="/dashboard" className="w-10 h-10 rounded-full bg-white/90 shadow-sm flex items-center justify-center">
+        <button onClick={() => setShowHistory(true)} className="w-10 h-10 rounded-full bg-white/90 shadow-sm flex items-center justify-center">
           <span className="text-base font-black text-slate-800">H</span>
-        </Link>
+        </button>
 
         {plan !== "pro" ? (
           <button onClick={() => setShowProPage(true)} className="flex items-center gap-1.5 bg-white/90 shadow-sm rounded-full px-4 py-2">
@@ -222,14 +290,48 @@ export default function AppChat() {
       {/* Main */}
       <div className="flex-1 overflow-y-auto px-4">
         {isEmpty ? (
-          <div className="flex flex-col items-center justify-center h-full -mt-16">
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
-              <h2 className={`text-3xl font-bold mb-3 ${mode === "incognito" ? "text-white" : "text-slate-800"}`}>
+          <div className="flex flex-col items-center justify-center h-full pb-4">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center w-full max-w-md">
+              <h2 className={`text-3xl font-bold mb-2 ${mode === "incognito" ? "text-white" : "text-slate-800"}`}>
                 Haklarım
               </h2>
-              <p className={`text-sm mb-8 ${mode === "incognito" ? "text-slate-400" : "text-slate-400"}`}>
-                {mode === "emsal" ? "Davanızı anlatın, emsal kararları bulalım" : "Hukuki sorununuzu anlatın, avukatınız dinliyor"}
+              <p className={`text-sm mb-6 ${mode === "incognito" ? "text-slate-400" : "text-slate-400"}`}>
+                {mode === "emsal" ? "Davanızı anlatın, emsal kararları bulalım" : "Hukuki sorununuzu anlatın"}
               </p>
+
+              {/* Hazır Şablonlar */}
+              <div className="grid grid-cols-2 gap-2 mb-6">
+                {QUICK_TEMPLATES.map((t) => (
+                  <motion.button key={t.text} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                    onClick={() => handleSend(t.text)}
+                    className={`text-left p-3 rounded-xl text-xs transition-all ${
+                      mode === "incognito" ? "bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700"
+                      : "bg-white/80 text-slate-600 hover:bg-white hover:shadow-sm border border-slate-200/50"
+                    }`}>
+                    <span className="text-lg block mb-1">{t.emoji}</span>
+                    <span className="font-medium leading-tight">{t.text}</span>
+                  </motion.button>
+                ))}
+              </div>
+
+              {/* Bugünün Davası */}
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+                className={`text-left rounded-2xl p-4 mb-4 ${mode === "incognito" ? "bg-slate-800 border border-slate-700" : "bg-amber-50/80 border border-amber-200/50"}`}>
+                <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${mode === "incognito" ? "text-amber-400" : "text-amber-600"}`}>
+                  Bugünün Davası
+                </p>
+                <p className={`text-sm font-semibold mb-1 ${mode === "incognito" ? "text-white" : "text-slate-800"}`}>{todaysCase.title}</p>
+                <p className={`text-xs leading-relaxed ${mode === "incognito" ? "text-slate-400" : "text-slate-500"}`}>{todaysCase.lesson}</p>
+              </motion.div>
+
+              {/* Paylaş & Kazan */}
+              <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+                onClick={handleShare}
+                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                  mode === "incognito" ? "bg-slate-800 text-slate-400 border border-slate-700" : "bg-blue-50 text-blue-600 border border-blue-200/50"
+                }`}>
+                <Share2 className="w-3.5 h-3.5" /> Paylaş, analiz hakkı kazan
+              </motion.button>
             </motion.div>
           </div>
         ) : (
@@ -242,12 +344,26 @@ export default function AppChat() {
                     <Scale className={`w-4 h-4 ${mode === "incognito" ? "text-slate-300" : "text-blue-600"}`} />
                   </div>
                 )}
-                <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                <div className={`max-w-[85%] rounded-2xl px-4 py-3 group/msg ${
                   msg.role === "user"
                     ? mode === "incognito" ? "bg-slate-700 text-white rounded-br-md" : "bg-blue-600 text-white rounded-br-md"
                     : mode === "incognito" ? "bg-slate-800 text-slate-200 rounded-bl-md border border-slate-700" : "bg-white text-slate-800 rounded-bl-md shadow-sm border border-slate-100"
                 }`}>
                   <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                  {/* Kopyala + Avukata sor */}
+                  {msg.role === "assistant" && (
+                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100/50">
+                      <button onClick={() => copyMessage(msg.id, msg.content)}
+                        className={`text-[10px] flex items-center gap-1 ${mode === "incognito" ? "text-slate-500" : "text-slate-400"} hover:text-slate-600`}>
+                        {copiedId === msg.id ? <><Check className="w-3 h-3 text-emerald-500" /> Kopyalandı</> : <><Copy className="w-3 h-3" /> Kopyala</>}
+                      </button>
+                      {mode !== "incognito" && (
+                        <Link href="/tools/find-lawyer" className="text-[10px] flex items-center gap-1 text-blue-500 hover:text-blue-600">
+                          <UserSearch className="w-3 h-3" /> Avukata sor
+                        </Link>
+                      )}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -427,6 +543,74 @@ export default function AppChat() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+      {/* Sohbet Geçmişi Panel */}
+      <AnimatePresence>
+        {showHistory && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/30 z-50" onClick={() => setShowHistory(false)} />
+            <motion.div
+              initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed top-0 left-0 bottom-0 w-72 bg-white z-50 shadow-2xl safe-area-left flex flex-col"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-slate-100">
+                <span className="text-lg font-black text-slate-900">Sohbetler</span>
+                <button onClick={() => setShowHistory(false)} className="p-1"><X className="w-5 h-5 text-slate-400" /></button>
+              </div>
+
+              <button onClick={startNewChat}
+                className="mx-3 mt-3 px-4 py-2.5 bg-teal-50 text-teal-700 rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-teal-100">
+                <Scale className="w-4 h-4" /> Yeni Sohbet
+              </button>
+
+              <div className="flex-1 overflow-y-auto p-3 space-y-1">
+                {chatHistory.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-8">Henüz sohbet yok</p>
+                ) : (
+                  chatHistory.map((chat) => (
+                    <div key={chat.id} className={`flex items-center gap-2 group ${currentChatId === chat.id ? "bg-slate-100" : "hover:bg-slate-50"} rounded-xl`}>
+                      <button onClick={() => loadChat(chat)} className="flex-1 text-left px-3 py-2.5 min-w-0">
+                        <p className="text-sm text-slate-700 truncate font-medium">{chat.title}</p>
+                        <p className="text-[10px] text-slate-400">{new Date(chat.updatedAt).toLocaleDateString("tr-TR")}</p>
+                      </button>
+                      <button onClick={() => { deleteChat(chat.id); setChatHistory(getChatHistory()); }}
+                        className="p-1.5 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Araçlar */}
+              <div className="border-t border-slate-100 p-3 space-y-1">
+                <Link href="/tools/find-lawyer" className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg" onClick={() => setShowHistory(false)}>
+                  <UserSearch className="w-4 h-4" /> Avukat Bul
+                </Link>
+                <Link href="/tools/glossary" className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg" onClick={() => setShowHistory(false)}>
+                  <BookOpen className="w-4 h-4" /> Hukuk Sözlüğü
+                </Link>
+                <button onClick={handleShare} className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg w-full">
+                  <Share2 className="w-4 h-4" /> Paylaş & Kazan
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Share Toast */}
+      <AnimatePresence>
+        {shareToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-20 left-4 right-4 z-50 bg-emerald-600 text-white text-sm font-semibold py-3 px-4 rounded-2xl text-center shadow-lg"
+          >
+            {shareToast}
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

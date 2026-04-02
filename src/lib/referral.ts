@@ -1,93 +1,83 @@
+"use client";
+
 /**
- * Referans Sistemi - "Arkadaşını Davet Et, Analiz Kazan"
+ * Paylaş → Analiz Kazan sistemi
  */
 
-export interface Referral {
-  referrerUserId: string;
-  referredEmail: string;
-  referralCode: string;
-  createdAt: string;
-  completed: boolean; // Davet edilen kişi kayıt oldu mu
-  rewarded: boolean;  // Ödül verildi mi
+const REFERRAL_KEY = "hklrm_referral";
+const BONUS_KEY = "hklrm_bonus_analyses";
+
+interface ReferralData {
+  shareCount: number;
+  bonusEarned: number;
+  lastShareDate: string;
 }
 
-const REFERRALS_KEY = "jg_referrals";
-
-export function generateReferralCode(userId: string): string {
-  const stored = localStorage.getItem(`jg_refcode_${userId}`);
-  if (stored) return stored;
-
-  const code = `JG-${userId.slice(-4).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-  localStorage.setItem(`jg_refcode_${userId}`, code);
-  return code;
-}
-
-export function getReferralCode(userId: string): string {
-  return localStorage.getItem(`jg_refcode_${userId}`) || generateReferralCode(userId);
-}
-
-export function getReferralLink(userId: string): string {
-  const code = getReferralCode(userId);
-  const base = typeof window !== "undefined" ? window.location.origin : "https://hukuksal.vercel.app";
-  return `${base}/auth/register?ref=${code}`;
-}
-
-export function getReferrals(userId: string): Referral[] {
+function getData(): ReferralData {
+  if (typeof window === "undefined") return { shareCount: 0, bonusEarned: 0, lastShareDate: "" };
   try {
-    const all: Referral[] = JSON.parse(localStorage.getItem(REFERRALS_KEY) || "[]");
-    return all.filter((r) => r.referrerUserId === userId);
-  } catch { return []; }
+    return JSON.parse(localStorage.getItem(REFERRAL_KEY) || '{"shareCount":0,"bonusEarned":0,"lastShareDate":""}');
+  } catch { return { shareCount: 0, bonusEarned: 0, lastShareDate: "" }; }
 }
 
-export function addReferral(referrerCode: string, referredEmail: string): void {
-  // Kodu referrer userId'ye çevir
-  const allCodes = Object.keys(localStorage).filter((k) => k.startsWith("jg_refcode_"));
-  let referrerUserId = "";
-  for (const key of allCodes) {
-    if (localStorage.getItem(key) === referrerCode) {
-      referrerUserId = key.replace("jg_refcode_", "");
-      break;
-    }
+export function getShareLink(): string {
+  return "https://haklarim.app";
+}
+
+export function getShareText(): string {
+  return "Hukuki haklarını öğrenmek için Haklarım uygulamasını dene! AI avukatına ücretsiz soru sorabilirsin 🏛️";
+}
+
+export function recordShare(): { bonusGranted: boolean; totalBonus: number } {
+  const data = getData();
+  const today = new Date().toISOString().slice(0, 10);
+
+  data.shareCount += 1;
+
+  // Her 3 paylaşımda 1 bonus analiz hakkı
+  let bonusGranted = false;
+  if (data.shareCount % 3 === 0) {
+    data.bonusEarned += 1;
+    bonusGranted = true;
+
+    const currentBonus = parseInt(localStorage.getItem(BONUS_KEY) || "0");
+    localStorage.setItem(BONUS_KEY, String(currentBonus + 1));
   }
 
-  if (!referrerUserId) return;
+  data.lastShareDate = today;
+  localStorage.setItem(REFERRAL_KEY, JSON.stringify(data));
 
-  const referrals: Referral[] = JSON.parse(localStorage.getItem(REFERRALS_KEY) || "[]");
-
-  // Aynı email zaten davet edilmiş mi
-  if (referrals.find((r) => r.referredEmail === referredEmail)) return;
-
-  referrals.push({
-    referrerUserId,
-    referredEmail,
-    referralCode: referrerCode,
-    createdAt: new Date().toISOString(),
-    completed: true,
-    rewarded: false,
-  });
-
-  localStorage.setItem(REFERRALS_KEY, JSON.stringify(referrals));
-
-  // Referrer'a 1 ek analiz hakkı ver
-  rewardReferrer(referrerUserId);
+  return { bonusGranted, totalBonus: data.bonusEarned };
 }
 
-function rewardReferrer(userId: string): void {
-  const subKey = `jg_subscription_${userId}`;
-  try {
-    const sub = JSON.parse(localStorage.getItem(subKey) || "{}");
-    if (sub.analysisLimit && sub.analysisLimit > 0) {
-      sub.analysisLimit += 1;
-      localStorage.setItem(subKey, JSON.stringify(sub));
-    }
-  } catch { /* ignore */ }
+export function getBonusAnalyses(): number {
+  if (typeof window === "undefined") return 0;
+  return parseInt(localStorage.getItem(BONUS_KEY) || "0");
 }
 
-export function getReferralStats(userId: string): { totalInvites: number; completedInvites: number; earnedAnalyses: number } {
-  const referrals = getReferrals(userId);
-  return {
-    totalInvites: referrals.length,
-    completedInvites: referrals.filter((r) => r.completed).length,
-    earnedAnalyses: referrals.filter((r) => r.completed).length,
+export function useBonusAnalysis(): boolean {
+  const bonus = getBonusAnalyses();
+  if (bonus <= 0) return false;
+  localStorage.setItem(BONUS_KEY, String(bonus - 1));
+  return true;
+}
+
+export async function shareApp(): Promise<boolean> {
+  const shareData = {
+    title: "Haklarım - AI Hukuk Asistanı",
+    text: getShareText(),
+    url: getShareLink(),
   };
+
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+      return true;
+    }
+    // Fallback: clipboard
+    await navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
+    return true;
+  } catch {
+    return false;
+  }
 }
