@@ -22,11 +22,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        {children}
-        <PWAInstallPrompt />
-      </AuthProvider>
-    </ErrorBoundary>
+    <AuthProvider>
+      {children}
+      <PWAInstallPrompt />
+    </AuthProvider>
   );
 }
