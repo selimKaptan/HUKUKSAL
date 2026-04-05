@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Scale, ArrowLeft, Clock, AlertTriangle, CheckCircle2, XCircle, BookOpen, Calendar, Briefcase, Heart, ShoppingCart, Home, Building2, Gavel, Timer, Shield, ChevronDown, HelpCircle } from "lucide-react";
+import { Scale, Clock, AlertTriangle, CheckCircle2, XCircle, BookOpen, Calendar, Briefcase, Heart, ShoppingCart, Home, Building2, Gavel, Timer, Shield, ChevronDown, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,16 +53,12 @@ export default function StatuteOfLimitationsPage() {
       </header>
 
       <div className="max-w-5xl mx-auto px-6 py-12">
-        <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 mb-6">
-          <ArrowLeft className="w-4 h-4" /> Dashboard
-        </Link>
-
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-full px-4 py-1.5 text-sm font-medium text-orange-700 mb-4">
-            <Timer className="w-4 h-4" /> Surelerinizi Kacirmayin
+            <Timer className="w-4 h-4" /> Sürelerinizi kaçırmayın
           </div>
-          <h1 className="text-4xl font-black text-slate-900 mb-3">Zamanasimi Hesaplayici</h1>
-          <p className="text-lg text-slate-500 max-w-2xl mx-auto">Davanizin zamanasimi surelerini kontrol edin. Sureniz dolduysa dava hakkini kaybedebilirsiniz.</p>
+          <h1 className="text-4xl font-black text-slate-900 mb-3">Zamanaşımı Hesaplayıcı</h1>
+          <p className="text-lg text-slate-500 max-w-2xl mx-auto">Davanızın zamanaşımı sürelerini kontrol edin. Süreniz dolduysa dava hakkınızı kaybedebilirsiniz.</p>
         </div>
 
         {/* ADIM 1: Kategori Seçimi */}

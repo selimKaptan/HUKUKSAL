@@ -117,9 +117,9 @@ export default function HistoryPage() {
       </header>
 
       <div className="max-w-5xl mx-auto px-6 py-12">
-        <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 mb-6 transition-colors">
+        <Link href="/" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4" />
-          Dashboard
+          Ana sayfa
         </Link>
 
         <div className="flex items-center justify-between mb-8">

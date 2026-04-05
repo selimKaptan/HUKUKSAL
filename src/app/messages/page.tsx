@@ -172,8 +172,8 @@ export default function MessagesPage() {
               Haklarım
             </span>
           </Link>
-          <Link href="/dashboard" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">
-            <ArrowLeft className="w-4 h-4" /> Dashboard
+          <Link href="/" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">
+            <ArrowLeft className="w-4 h-4" /> Ana sayfa
           </Link>
         </div>
       </header>
