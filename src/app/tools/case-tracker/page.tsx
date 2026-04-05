@@ -14,7 +14,6 @@ import {
   ChevronUp,
   Clock,
   Trash2,
-  ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -197,10 +196,6 @@ export default function CaseTrackerPage() {
       </header>
 
       <div className="max-w-5xl mx-auto px-6 py-12">
-        <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 mb-6">
-          <ArrowLeft className="w-4 h-4" /> Dashboard
-        </Link>
-
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-3xl font-black text-slate-900">Dava Takip Sistemi</h1>
           <Button onClick={() => setShowNewForm(true)} className="gap-2">

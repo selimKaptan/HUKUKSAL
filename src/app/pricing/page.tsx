@@ -28,8 +28,8 @@ export default function PricingPage() {
             </div>
             <span className="text-xl font-black text-slate-900 tracking-tight">Haklarım</span>
           </Link>
-          <Link href="/dashboard" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">
-            <ArrowLeft className="w-4 h-4" /> Geri
+          <Link href="/" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">
+            <ArrowLeft className="w-4 h-4" /> Ana sayfa
           </Link>
         </div>
       </header>

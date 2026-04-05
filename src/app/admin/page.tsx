@@ -129,10 +129,10 @@ export default function AdminDashboard() {
               <RefreshCw className="w-4 h-4 mr-1" />
               Yenile
             </Button>
-            <Link href="/dashboard">
+            <Link href="/">
               <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
                 <Scale className="w-4 h-4 mr-1" />
-                Ana Site
+                Ana sayfa
               </Button>
             </Link>
           </div>

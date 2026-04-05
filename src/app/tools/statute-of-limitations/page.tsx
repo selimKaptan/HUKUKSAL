@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Scale, ArrowLeft, Clock, AlertTriangle, CheckCircle2, XCircle, BookOpen } from "lucide-react";
+import { Scale, Clock, AlertTriangle, CheckCircle2, XCircle, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,10 +36,6 @@ export default function StatuteOfLimitationsPage() {
       </header>
 
       <div className="max-w-4xl mx-auto px-6 py-12">
-        <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 mb-6">
-          <ArrowLeft className="w-4 h-4" /> Dashboard
-        </Link>
-
         <h1 className="text-3xl font-black text-slate-900 mb-2">Zamanaşımı Hesaplayıcı</h1>
         <p className="text-slate-500 mb-8">Davanızın zamanaşımı sürelerini kontrol edin</p>
 
