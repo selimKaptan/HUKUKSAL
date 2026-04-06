@@ -62,7 +62,7 @@ export { StoreButtons, APP_STORE_URL, PLAY_STORE_URL };
 export function HeroSection() {
   const { user } = useAuth();
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pt-20 pb-10 md:pt-24 md:pb-14">
+    <section className="relative min-h-screen flex flex-col items-center overflow-x-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pt-24 pb-16 md:pt-28 md:pb-20">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-200 rounded-full opacity-20 blur-3xl" />
@@ -70,7 +70,7 @@ export function HeroSection() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-blue-100 to-indigo-100 rounded-full opacity-30 blur-3xl" />
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 text-center">
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-6 text-center">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
